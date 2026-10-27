@@ -1,0 +1,17 @@
+.gate { position: fixed; inset: 0; width: 100vw; max-width: none; height: 100dvh; max-height: 100dvh; padding: 0; margin: 0; border: 0; background: #12271f; color: #fff; overflow: hidden; }
+.gate::backdrop { background: #10251dcc; }
+.video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #0b1712; }
+.shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(#06150bc9,transparent 40%,transparent 68%,#06150bd9); }
+.header { position: absolute; top: 30px; left: 4vw; right: 4vw; pointer-events: none; }
+.header span { color: #d2ddc5; font-size: 10px; letter-spacing: 2px; }
+.header h1 { margin: 15px 0 12px; font-size: clamp(25px,4vw,48px); font-weight: 450; letter-spacing: -1px; }
+.header p { max-width: 440px; color: #c7d5bd; font-size: 12px; line-height: 1.8; }
+.actions { position: absolute; right: 4vw; bottom: 105px; left: 4vw; display: flex; justify-content: flex-end; gap: 12px; }
+.actions button, .error button { padding: 13px 18px; border: 1px solid #c9d7bb; border-radius: 7px; background: #ecf2e4; color: #25452f; font: inherit; font-size: 12px; cursor: pointer; }
+.actions button:first-child:not(:last-child) { background: #193b2ad9; color: #eff6e8; }
+.caption { position: absolute; bottom: 53px; left: 4vw; right: 4vw; text-align: center; font-size: 10px; line-height: 1.7; color: #d1ddc7; pointer-events: none; }
+.error { position: absolute; left: 50%; top: 45%; transform: translate(-50%,-50%); width: min(430px,90vw); padding: 25px; border: 1px solid #aac49b; border-radius: 12px; background: #183728f2; text-align: center; }
+.error h2 { font-size: 22px; font-weight: 500; }
+.error p { font-size: 13px; color: #ccd9c2; }
+.gate button:focus-visible { outline: 3px solid #bd9860; outline-offset: 3px; }
+@media(max-width:600px) { .header { top: 20px; } .header p { font-size: 11px; } .actions { bottom: 115px; justify-content: space-between; } .caption { bottom: 57px; font-size: 9px; } }

@@ -1,4 +1,5 @@
-import DemoWalkthrough from '@/components/DemoWalkthrough';
+import { redirect } from 'next/navigation';
+
 export default function TrialPage() {
-  return <DemoWalkthrough />;
+  redirect('/');
 }

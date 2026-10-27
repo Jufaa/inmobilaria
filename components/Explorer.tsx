@@ -1,10 +1,11 @@
 'use client';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import MobileHelp from './MobileHelp';
 import { useDemo } from './DemoProvider';
 import PropertyExtras from './PropertyExtras';
 import InquiryForm from './InquiryForm';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   Bath,
@@ -77,6 +78,26 @@ export default function Explorer() {
   const [favorites, setFavorites] = useState<number[]>([]);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [searchCollapsed, setSearchCollapsed] = useState(false);
+  const [mobile, setMobile] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpKey = `territorio-help-v1-${agency.id}`;
+  const closeHelp = useCallback(() => {
+    setHelpOpen(false);
+    try { localStorage.setItem(helpKey, 'seen'); } catch {}
+  }, [helpKey]);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 900px)');
+    const update = () => {
+      setMobile(media.matches);
+      if (media.matches) { setView('map'); setSearchCollapsed(true); }
+      else setSearchCollapsed(false);
+    };
+    update();
+    if(media.matches) { try { if(localStorage.getItem(helpKey) !== 'seen') setHelpOpen(true); } catch {} }
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [helpKey]);
+
   const [selected, setSelected] = useState<number | null>(null);
   const [detail, setDetail] = useState<Property | null>(null);
   const [tour, setTour] = useState(false);
@@ -169,6 +190,26 @@ export default function Explorer() {
     () => zones.filter((zone) => areaIds.includes(zone.id)),
     [areaIds],
   );
+  useEffect(() => {
+    if (!mobile || searchCollapsed) return;
+    const previous = document.activeElement as HTMLElement;
+    const panel = searchOverlay.current;
+    const old = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    panel?.querySelector<HTMLButtonElement>('button')?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if(event.key === 'Escape') setSearchCollapsed(true);
+      if(event.key !== 'Tab') return;
+      const nodes = panel?.querySelectorAll<HTMLElement>('button:not([disabled]),input,select,a[href]');
+      const items = nodes ? [...nodes].filter(node => node.getClientRects().length > 0) : [];
+      if (!items.length) return;
+      const first=items[0],last=items[items.length-1];
+      if(event.shiftKey && document.activeElement === first) {event.preventDefault();last.focus();}
+      else if(!event.shiftKey && document.activeElement === last){event.preventDefault();first.focus();}
+    };
+    document.addEventListener('keydown',keydown);
+    return () => { document.body.style.overflow=old;document.removeEventListener('keydown',keydown);previous?.focus(); };
+  }, [mobile, searchCollapsed]);
   const suggestions = getAreaSuggestions(searchDraft);
   const searchFilters: SearchFilters = {
     operation,
@@ -520,7 +561,7 @@ export default function Explorer() {
     </article>
   );
   return (
-    <main className="map-first-app easy-search-app">
+    <main className={`map-first-app easy-search-app ${mobile ? 'mobile-ready' : ''}`}>
       <header className="app-header">
         <a className="brand" href={publicPath} aria-label={`${brand.name}, inicio`}>
           <span className="brand-symbol">
@@ -581,10 +622,17 @@ export default function Explorer() {
           Favoritos <b>{favorites.length}</b>
         </button>
       </header>
+      {mobile && helpOpen && <MobileHelp onClose={closeHelp} />}
       <section
         className={`app-stage ${view === 'catalog' ? 'catalog-active' : ''} ${searchCollapsed ? 'search-collapsed' : ''}`}
         aria-label="Buscar propiedades en Río Cuarto"
       >
+        <div className="mobile-map-toolbar">
+          <button onClick={() => { setHelpOpen(false); setSearchCollapsed(false); }}><Search size={20}/>Buscar y filtrar</button>
+          <button onClick={() => { setSearchCollapsed(true); setHelpOpen(true); }}>Ayuda</button>
+          <p>{operation === 'Comprar' ? 'Venta' : 'Alquiler'} · {activeAreas.length ? activeAreas.map(area=>area.label).join(', ') : 'Toda la ciudad'} · <strong>{results.length} resultados</strong></p>
+        </div>
+        {mobile && !searchCollapsed && <button className="mobile-filter-backdrop" aria-label="Cerrar filtros" onClick={() => setSearchCollapsed(true)} tabIndex={-1} />}
         {searchCollapsed && (
           <button
             id="reopen-search"
@@ -603,6 +651,8 @@ export default function Explorer() {
           className="search-overlay easy-search-panel"
           ref={searchOverlay}
           aria-label="Opciones de búsqueda"
+          role={mobile ? 'dialog' : undefined}
+          aria-modal={mobile ? true : undefined}
         >
           <button
             className="collapse-search"
@@ -614,7 +664,7 @@ export default function Explorer() {
             }}
             aria-label="Ocultar búsqueda para explorar el mapa"
           >
-            Ocultar búsqueda <X size={18} />
+            {mobile ? 'Cerrar filtros' : 'Ocultar búsqueda'} <X size={18} />
           </button>
           <div className="search-panel-intro">
             <h1>Encontrá tu departamento</h1>
@@ -978,6 +1028,8 @@ export default function Explorer() {
           {!activeAreas.length && !search && !viewport && (
             <p className="search-default-note">Buscás en toda la ciudad.</p>
           )}
+          <button className="mobile-favorites-filter" onClick={() => setOnlyFavorites(!onlyFavorites)} aria-pressed={onlyFavorites}><Heart size={18}/>{onlyFavorites ? 'Mostrando favoritos' : 'Solo favoritos'} · {favorites.length}</button>
+          <button className="mobile-apply-filters primary-button" onClick={() => setSearchCollapsed(true)} disabled={invalidBudget}>Ver {results.length} propiedades</button>
         </aside>
         <div
           className="view-layer map-view"
@@ -987,6 +1039,7 @@ export default function Explorer() {
           hidden={view !== 'map'}
         >
           <CityMap
+            controlsBlocked={mobile && (!searchCollapsed || helpOpen)}
             properties={results}
             selected={preview?.id ?? null}
             onSelect={selectOnMap}

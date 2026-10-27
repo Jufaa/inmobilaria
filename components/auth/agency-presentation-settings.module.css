@@ -1,0 +1,82 @@
+.editor {
+  display: grid;
+  gap: 1.25rem;
+  color: #26372f;
+}
+
+.header h2 { margin: .2rem 0 .4rem; font-size: 1.4rem; }
+.header p { margin: 0; max-width: 58rem; color: #627067; line-height: 1.55; }
+.eyebrow { color: #65816f !important; font-size: .72rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+
+.notice {
+  padding: 1rem 1.1rem;
+  border: 1px solid #d8e4d8;
+  border-radius: 14px;
+  background: #f2f6ef;
+  line-height: 1.5;
+}
+.notice p { margin: .35rem 0 0; color: #53635a; }
+
+.form { display: grid; gap: 1rem; }
+.group {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1.1rem;
+  border: 1px solid #e4e7df;
+  border-radius: 15px;
+  background: #fffefa;
+}
+.group legend { padding: 0 .4rem; color: #314b3b; font-size: 1rem; font-weight: 750; }
+.group > p { margin: 0; color: #65736b; line-height: 1.5; }
+.count { color: #748078; font-size: .82rem; font-weight: 600; }
+
+.field { display: grid; gap: .4rem; min-width: 0; color: #3f5047; font-size: .86rem; font-weight: 650; }
+.field small { color: #718078; font-size: .78rem; font-weight: 400; line-height: 1.45; }
+.field input:not([type="checkbox"]):not([type="color"]):not([type="file"]), .field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: .55rem .7rem;
+  border: 1px solid #d9ded5;
+  border-radius: 9px;
+  background: white;
+  color: #26372f;
+  font: inherit;
+  font-weight: 450;
+}
+.field input:focus-visible, .field select:focus-visible, .toggle input:focus-visible, .form button:focus-visible { outline: 3px solid #8aa993; outline-offset: 2px; }
+.field input[type="color"] { width: 100%; height: 42px; padding: .2rem; border: 1px solid #d9ded5; border-radius: 9px; background: white; }
+.field input[type="file"] { width: 100%; padding: .55rem 0; color: #53635a; font: inherit; }
+.toggle { display: flex; align-items: center; gap: .55rem; color: #45564c; font-size: .88rem; }
+.toggle input { width: 18px; height: 18px; accent-color: #547a60; }
+
+.colorGrid, .coordinateGrid, .pointGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
+.pointGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.point, .mediaRow { display: grid; gap: .8rem; padding: .95rem; border: 1px solid #e7e9e2; border-radius: 12px; background: #fff; }
+.point h3, .mediaRow h3 { margin: 0; color: #3e5647; font-size: .9rem; }
+.mediaRow + .mediaRow { margin-top: .1rem; }
+.actions { display: flex; justify-content: flex-end; gap: .7rem; }
+.primaryButton, .secondaryButton, .removeButton {
+  min-height: 42px;
+  padding: .6rem .95rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.primaryButton { background: #3c684d; color: white; }
+.secondaryButton { border-color: #cfd9cf; background: #f6f8f3; color: #3d5946; }
+.removeButton { justify-self: start; min-height: 36px; border-color: #ecd5ce; background: #fff9f7; color: #94523f; font-size: .82rem; }
+.secondaryButton:disabled { cursor: not-allowed; opacity: .55; }
+.messageError, .messageStatus { margin: 0; padding: .8rem 1rem; border-radius: 10px; line-height: 1.45; }
+.messageError { border: 1px solid #eccdc7; background: #fff3ef; color: #853c2d; }
+.messageStatus { border: 1px solid #d2e3d2; background: #f1f7ef; color: #3e6849; }
+
+@media (max-width: 740px) {
+  .colorGrid, .coordinateGrid, .pointGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .actions { flex-direction: column-reverse; }
+  .actions button { width: 100%; }
+}

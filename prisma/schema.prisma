@@ -1,0 +1,564 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AgencyRole {
+  OWNER
+  ADMIN
+  EDITOR
+  AGENT
+}
+
+enum PlatformRole {
+  USER
+  OWNER
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  PH
+  LAND
+  COMMERCIAL
+  OTHER
+}
+
+enum PropertyOperation {
+  SALE
+  RENT
+}
+
+enum PropertyStatus {
+  DRAFT
+  PUBLISHED
+  RESERVED
+  SOLD
+  UNAVAILABLE
+}
+
+enum PriceCurrency {
+  ARS
+  USD
+}
+
+enum PropertyMediaKind {
+  PHOTO
+  VIDEO
+  TOUR_360
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CLOSED
+}
+
+enum PointOfInterestCategory {
+  PARK
+  AVENUE
+  SCHOOL
+  SHOPPING
+  HOSPITAL
+  LANDMARK
+  OTHER
+}
+
+enum AgencyConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  ENDED
+}
+
+enum CollaborationEventType {
+  REQUESTED
+  ACCEPTED
+  REJECTED
+  ENDED
+  PROPERTY_SHARED
+  PROPERTY_SHARE_REVOKED
+}
+
+enum AnalyticsEventType {
+  LISTING_VIEW
+  PROPERTY_VIEW
+  SEARCH
+  ZONE_SELECTION
+  INQUIRY_SUBMISSION
+}
+
+enum RentalContactKind {
+  LANDLORD
+  TENANT
+}
+
+enum RentalContractStatus {
+  DRAFT
+  ACTIVE
+  ENDED
+}
+
+enum RentChargeStatus {
+  OPEN
+  PARTIAL
+  PAID
+}
+
+enum ExpenseStatus {
+  UNPAID
+  PAID
+}
+
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  email         String?      @unique
+  emailVerified DateTime?
+  passwordHash  String?      @db.VarChar(160)
+  platformRole  PlatformRole @default(USER)
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  memberships   Membership[]
+  rentAdjustments RentAdjustment[]
+  rentPayments RentPayment[]
+  rentalAuditEvents RentalAuditEvent[]
+  grantedPropertyShares PropertyShareGrant[]
+  collaborationEvents   CollaborationEvent[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Agency {
+  id          String       @id @default(cuid())
+  name        String       @db.VarChar(120)
+  slug        String       @unique @db.VarChar(60)
+  brandPrimaryColor String? @db.VarChar(7)
+  logoUrl     String?      @db.VarChar(2048)
+  coverUrl    String?      @db.VarChar(2048)
+  welcomeVideoUrl String?  @db.VarChar(2048)
+  welcomeVideoDescription String? @db.VarChar(500)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
+  presentationConfig AgencyPresentationConfig?
+  properties  Property[]
+  lowConnections  AgencyConnection[] @relation("ConnectionLowAgency")
+  highConnections AgencyConnection[] @relation("ConnectionHighAgency")
+  requestedConnections AgencyConnection[] @relation("ConnectionRequester")
+  ownedShareGrants PropertyShareGrant[] @relation("ShareOwnerAgency")
+  receivedShareGrants PropertyShareGrant[] @relation("ShareRecipientAgency")
+  collaborationEvents CollaborationEvent[] @relation("CollaborationActorAgency")
+  ownedInquiries PropertyInquiry[] @relation("InquiryOwnerAgency")
+  presentedInquiries PropertyInquiry[] @relation("InquiryPresentingAgency")
+  analyticsEvents AnalyticsEvent[]
+  presentedAnalyticsEvents AnalyticsEvent[] @relation("AnalyticsPresentingAgency")
+  zones       Zone[]
+  pointsOfInterest PointOfInterest[]
+  rentalContacts RentalContact[]
+  rentalContracts RentalContract[]
+  rentAdjustments RentAdjustment[]
+  rentCharges RentCharge[]
+  rentPayments RentPayment[]
+  propertyExpenses PropertyExpense[]
+  rentalAuditEvents RentalAuditEvent[]
+}
+
+model AgencyPresentationConfig {
+  id                   String   @id @default(cuid())
+  agencyId             String   @unique
+  presentationSettings Json?    @db.JsonB
+  demoTourConfig       Json?    @db.JsonB
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  agency               Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+}
+
+model Membership {
+  id        String     @id @default(cuid())
+  userId    String
+  agencyId  String
+  role      AgencyRole @default(AGENT)
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agency    Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, agencyId])
+  @@index([agencyId, role])
+}
+
+model Property {
+  id           String          @id @default(cuid())
+  agencyId     String
+  title        String          @db.VarChar(160)
+  description  String          @db.Text
+  type         PropertyType
+  operation    PropertyOperation
+  status       PropertyStatus  @default(DRAFT)
+  price        Decimal         @db.Decimal(14, 2)
+  currency     PriceCurrency   @default(USD)
+  neighborhood String          @db.VarChar(120)
+  address      String          @db.VarChar(240)
+  area         Decimal         @db.Decimal(10, 2)
+  bedrooms     Int             @default(0)
+  bathrooms    Int             @default(0)
+  features     String[]        @default([])
+  latitude     Decimal?        @db.Decimal(10, 7)
+  longitude    Decimal?        @db.Decimal(10, 7)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  agency       Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  media        PropertyMedia[]
+  shareGrants  PropertyShareGrant[]
+  inquiries    PropertyInquiry[]
+  analyticsEvents AnalyticsEvent[]
+  rentalContracts RentalContract[]
+  propertyExpenses PropertyExpense[]
+  zoneId       String?
+  zone         Zone?            @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, status, updatedAt])
+  @@index([agencyId, neighborhood])
+  @@index([zoneId, status])
+}
+
+model Zone {
+  id          String   @id @default(cuid())
+  agencyId    String
+  name        String   @db.VarChar(120)
+  city        String   @default("Río Cuarto") @db.VarChar(120)
+  geometry    Json?
+  latitude    Decimal? @db.Decimal(10, 7)
+  longitude   Decimal? @db.Decimal(10, 7)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  agency      Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  properties  Property[]
+  pointsOfInterest PointOfInterest[]
+  analyticsEvents AnalyticsEvent[]
+
+  @@unique([agencyId, city, name])
+  @@index([agencyId, city])
+}
+
+model AnalyticsEvent {
+  id           String             @id @default(cuid())
+  agencyId     String
+  presentingAgencyId String?
+  type         AnalyticsEventType
+  propertyId   String?
+  zoneId       String?
+  operation    PropertyOperation?
+  propertyType PropertyType?
+  currency     PriceCurrency?
+  bedroomsFrom Int?
+  createdAt    DateTime           @default(now())
+  agency       Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  presentingAgency Agency?         @relation("AnalyticsPresentingAgency", fields: [presentingAgencyId], references: [id], onDelete: Cascade)
+  property     Property?          @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  zone         Zone?              @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, createdAt, type])
+  @@index([agencyId, propertyId, createdAt])
+  @@index([agencyId, zoneId, createdAt])
+  @@index([presentingAgencyId, createdAt, type])
+}
+
+model PointOfInterest {
+  id          String                    @id @default(cuid())
+  agencyId    String
+  zoneId      String?
+  name        String                    @db.VarChar(120)
+  category    PointOfInterestCategory   @default(OTHER)
+  description String?                   @db.VarChar(500)
+  latitude    Decimal                   @db.Decimal(10, 7)
+  longitude   Decimal                   @db.Decimal(10, 7)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  agency      Agency                    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  zone        Zone?                     @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, zoneId])
+  @@index([agencyId, category])
+}
+
+model AgencyConnection {
+  id                              String                 @id @default(cuid())
+  agencyLowId                     String
+  agencyHighId                    String
+  requestedByAgencyId             String
+  status                          AgencyConnectionStatus @default(PENDING)
+  lowCommissionPercent            Int?
+  highCommissionPercent           Int?
+  requestedAt                     DateTime               @default(now())
+  respondedAt                     DateTime?
+  endedAt                         DateTime?
+  createdAt                       DateTime               @default(now())
+  updatedAt                       DateTime               @updatedAt
+  agencyLow                       Agency                 @relation("ConnectionLowAgency", fields: [agencyLowId], references: [id], onDelete: Cascade)
+  agencyHigh                      Agency                 @relation("ConnectionHighAgency", fields: [agencyHighId], references: [id], onDelete: Cascade)
+  requestedBy                     Agency                 @relation("ConnectionRequester", fields: [requestedByAgencyId], references: [id], onDelete: Cascade)
+  shareGrants                     PropertyShareGrant[]
+  events                          CollaborationEvent[]
+
+  @@unique([agencyLowId, agencyHighId])
+  @@index([agencyLowId, status])
+  @@index([agencyHighId, status])
+}
+
+model PropertyShareGrant {
+  id               String          @id @default(cuid())
+  connectionId     String
+  propertyId       String
+  ownerAgencyId    String
+  recipientAgencyId String
+  grantedByUserId  String
+  active           Boolean         @default(true)
+  grantedAt        DateTime        @default(now())
+  revokedAt        DateTime?
+  connection       AgencyConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  property         Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  ownerAgency      Agency          @relation("ShareOwnerAgency", fields: [ownerAgencyId], references: [id], onDelete: Cascade)
+  recipientAgency  Agency          @relation("ShareRecipientAgency", fields: [recipientAgencyId], references: [id], onDelete: Cascade)
+  grantedBy        User            @relation(fields: [grantedByUserId], references: [id], onDelete: Restrict)
+  events           CollaborationEvent[]
+
+  @@unique([propertyId, recipientAgencyId])
+  @@index([ownerAgencyId, active, grantedAt])
+  @@index([recipientAgencyId, active, grantedAt])
+}
+
+model CollaborationEvent {
+  id               String                 @id @default(cuid())
+  type             CollaborationEventType
+  connectionId     String?
+  shareGrantId     String?
+  actorUserId      String
+  actorAgencyId    String
+  targetAgencyId   String?
+  propertyId       String?
+  details          Json?
+  createdAt        DateTime               @default(now())
+  connection       AgencyConnection?      @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  shareGrant       PropertyShareGrant?    @relation(fields: [shareGrantId], references: [id], onDelete: SetNull)
+  actorUser        User                   @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorAgency      Agency                 @relation("CollaborationActorAgency", fields: [actorAgencyId], references: [id], onDelete: Cascade)
+
+  @@index([actorAgencyId, createdAt])
+  @@index([targetAgencyId, createdAt])
+  @@index([propertyId, createdAt])
+}
+
+model PropertyMedia {
+  id         String           @id @default(cuid())
+  propertyId String
+  kind       PropertyMediaKind
+  url        String           @db.VarChar(2048)
+  caption    String?          @db.VarChar(240)
+  sortOrder  Int              @default(0)
+  createdAt  DateTime         @default(now())
+  property   Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, sortOrder])
+}
+
+model PropertyInquiry {
+  id                  String        @id @default(cuid())
+  propertyId          String
+  ownerAgencyId       String
+  presentingAgencyId  String
+  contactName         String        @db.VarChar(100)
+  contactEmail        String        @db.VarChar(254)
+  contactPhone        String?       @db.VarChar(40)
+  message             String        @db.VarChar(2000)
+  status              InquiryStatus @default(NEW)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  property            Property      @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  ownerAgency         Agency        @relation("InquiryOwnerAgency", fields: [ownerAgencyId], references: [id], onDelete: Restrict)
+  presentingAgency    Agency        @relation("InquiryPresentingAgency", fields: [presentingAgencyId], references: [id], onDelete: Restrict)
+
+  @@index([ownerAgencyId, createdAt])
+  @@index([presentingAgencyId, createdAt])
+  @@index([propertyId, createdAt])
+  @@index([status, createdAt])
+}
+
+model RentalContact {
+  id                String            @id @default(cuid())
+  agencyId          String
+  kind              RentalContactKind
+  name              String            @db.VarChar(160)
+  email             String?           @db.VarChar(254)
+  phone             String?           @db.VarChar(40)
+  notes             String?           @db.VarChar(1000)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  agency            Agency            @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  landlordContracts RentalContract[]  @relation("RentalLandlord")
+  tenantContracts   RentalContract[]  @relation("RentalTenant")
+
+  @@index([agencyId, kind, name])
+}
+
+model RentalContract {
+  id                String               @id @default(cuid())
+  agencyId          String
+  propertyId        String
+  landlordContactId String
+  tenantContactId   String
+  status            RentalContractStatus @default(DRAFT)
+  startDate         DateTime             @db.Date
+  endDate           DateTime?            @db.Date
+  monthlyRent       Decimal              @db.Decimal(14, 2)
+  currency          PriceCurrency         @default(ARS)
+  rentDueDay        Int                  @default(1)
+  terms             String               @default("") @db.Text
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  agency            Agency               @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  property          Property             @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  landlord          RentalContact        @relation("RentalLandlord", fields: [landlordContactId], references: [id], onDelete: Restrict)
+  tenant            RentalContact        @relation("RentalTenant", fields: [tenantContactId], references: [id], onDelete: Restrict)
+  adjustments       RentAdjustment[]
+  charges           RentCharge[]
+
+  @@index([agencyId, status, endDate])
+  @@index([agencyId, propertyId])
+}
+
+model RentAdjustment {
+  id             String         @id @default(cuid())
+  agencyId       String
+  contractId     String
+  actorUserId    String
+  oldMonthlyRent Decimal        @db.Decimal(14, 2)
+  newMonthlyRent Decimal        @db.Decimal(14, 2)
+  percent        Decimal        @db.Decimal(8, 4)
+  source         String         @db.VarChar(160)
+  note           String         @default("") @db.VarChar(1000)
+  effectiveDate  DateTime       @db.Date
+  createdAt      DateTime       @default(now())
+  agency         Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  contract       RentalContract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  actorUser      User           @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([agencyId, effectiveDate])
+  @@index([contractId, effectiveDate])
+}
+
+model RentCharge {
+  id          String           @id @default(cuid())
+  agencyId    String
+  contractId  String
+  periodStart DateTime         @db.Date
+  dueDate     DateTime         @db.Date
+  amount      Decimal          @db.Decimal(14, 2)
+  status      RentChargeStatus @default(OPEN)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  agency      Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  contract    RentalContract   @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  payments    RentPayment[]
+
+  @@unique([contractId, periodStart])
+  @@index([agencyId, dueDate, status])
+}
+
+model RentPayment {
+  id          String     @id @default(cuid())
+  agencyId    String
+  chargeId    String
+  actorUserId String
+  amount      Decimal    @db.Decimal(14, 2)
+  paidAt      DateTime   @db.Date
+  method      String     @default("") @db.VarChar(80)
+  note        String     @default("") @db.VarChar(500)
+  createdAt   DateTime   @default(now())
+  agency      Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  charge      RentCharge @relation(fields: [chargeId], references: [id], onDelete: Restrict)
+  actorUser   User       @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([agencyId, paidAt])
+  @@index([chargeId, paidAt])
+}
+
+model PropertyExpense {
+  id          String        @id @default(cuid())
+  agencyId    String
+  propertyId  String?
+  description String        @db.VarChar(180)
+  category    String        @db.VarChar(80)
+  amount      Decimal       @db.Decimal(14, 2)
+  currency    PriceCurrency @default(ARS)
+  dueDate     DateTime?     @db.Date
+  paidAt      DateTime?     @db.Date
+  status      ExpenseStatus @default(UNPAID)
+  note        String        @default("") @db.VarChar(1000)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  agency      Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  property    Property?     @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, status, dueDate])
+  @@index([agencyId, propertyId])
+}
+
+model RentalAuditEvent {
+  id          String   @id @default(cuid())
+  agencyId    String
+  actorUserId String
+  action      String   @db.VarChar(80)
+  entityType  String   @db.VarChar(80)
+  entityId    String   @db.VarChar(64)
+  details     Json?
+  createdAt   DateTime @default(now())
+  agency      Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  actorUser   User     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([agencyId, createdAt])
+  @@index([agencyId, entityType, entityId])
+}

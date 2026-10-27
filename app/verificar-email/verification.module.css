@@ -1,0 +1,13 @@
+.page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #f3f6f5; color: #17312d; }
+.card { width: min(100%, 440px); padding: 36px; border: 1px solid #d9e4df; border-radius: 18px; background: white; box-shadow: 0 20px 70px #17312d12; }
+.eyebrow { color: #0f766e; font-size: var(--type-sm); font-weight: var(--weight-bold); letter-spacing: .08em; text-transform: uppercase; }
+.card h1 { margin: 12px 0 20px; font-size: var(--type-2xl); line-height: 1.2; }
+.form { display: grid; gap: 14px; }
+.form p { margin: 0; color: #60766c; line-height: 1.6; }
+.form button { min-height: 50px; border: 0; border-radius: 8px; background: #0f766e; color: white; cursor: pointer; font: inherit; font-weight: var(--weight-bold); }
+.form button:disabled { cursor: wait; opacity: .7; }
+.form a, .result a { color: #0f766e; font-weight: var(--weight-bold); }
+.error, .result { margin: 0; padding: 12px; border-radius: 7px; background: #fff1f0; color: #9b2c25; line-height: 1.5; }
+.result { display: grid; gap: 12px; background: #ecfdf5; color: #166534; }
+.result p { margin: 0; }
+@media (max-width: 480px) { .card { padding: 26px 20px; } }

@@ -1,0 +1,40 @@
+.page { min-height: 100vh; padding: 0 clamp(1rem, 5vw, 5rem) 2rem; color: #202a27; background: #f4f2ec; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.4rem 0; border-bottom: 1px solid #dfe2da; }
+.brand, .brandName { color: #176b61; font-size: var(--type-sm); font-weight: var(--weight-bold); text-decoration: none; }
+.brandName { display: flex; align-items: center; gap: .55rem; color: #202a27; font-size: var(--type-md); }
+.brandName span { display: grid; width: 1.8rem; height: 1.8rem; place-items: center; border-radius: .55rem; color: white; background: #176b61; font-family: var(--font-ui); }
+.layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(19rem, .65fr); gap: clamp(2rem, 5vw, 5rem); max-width: 1200px; margin: 2.2rem auto 0; }
+.content { min-width: 0; }
+.mediaPlaceholder { display: grid; min-height: clamp(15rem, 38vw, 32rem); place-items: center; overflow: hidden; border-radius: 1rem; color: #66716b; background: linear-gradient(140deg, #e3e7de, #d4ddd4 54%, #c4d7cf); font-size: var(--type-sm); }
+.eyebrow { margin: 1.6rem 0 .45rem; color: #176b61; font-size: var(--type-xs); font-weight: var(--weight-bold); letter-spacing: .12em; text-transform: uppercase; }
+.content h1 { margin: 0; font-family: var(--font-ui); font-size: var(--type-display); font-weight: var(--weight-medium); letter-spacing: -.05em; line-height: 1.05; }
+.location { margin: .55rem 0 0; color: #65716c; }
+.price { margin: 1.2rem 0; color: #202c28; font-size: var(--type-2xl); font-weight: var(--weight-bold); }
+.facts { display: flex; flex-wrap: wrap; gap: .55rem; }
+.facts span { border: 1px solid #d9e1d9; border-radius: 999px; padding: .45rem .75rem; color: #42554d; background: #fff; font-size: var(--type-xs); }
+.section { margin-top: 2rem; border-top: 1px solid #dfe2da; padding-top: 1.3rem; }
+.section h2 { margin: 0 0 .65rem; font-family: var(--font-ui); font-size: var(--type-xl); font-weight: var(--weight-medium); }
+.section p { margin: 0; color: #56645d; line-height: 1.7; white-space: pre-wrap; }
+.features { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0; padding: 0; list-style: none; }
+.features li { border-radius: .5rem; padding: .5rem .7rem; color: #476158; background: #e9efe8; font-size: var(--type-sm); }
+.agency { margin: 1.5rem 0 0; border-top: 1px solid #dfe2da; padding-top: 1rem; color: #50675d; font-size: var(--type-sm); }
+.locationPrivacy { margin: .7rem 0 0; color: #78837d; font-size: var(--type-xs); }
+.contact { position: sticky; top: 1rem; align-self: start; border: 1px solid #e1e4dc; border-radius: 1rem; padding: 1.2rem; background: #fff; box-shadow: 0 16px 50px #2838310b; }
+.form { display: grid; gap: .85rem; }
+.form h2 { margin: 0 0 .25rem; font-family: var(--font-ui); font-size: var(--type-2xl); font-weight: var(--weight-medium); }
+.form label { display: grid; gap: .35rem; color: #596961; font-size: var(--type-xs); font-weight: var(--weight-bold); }
+.form label span { display: inline; color: #89928d; font-weight: var(--weight-regular); }
+.form input, .form textarea { width: 100%; box-sizing: border-box; border: 1px solid #d9ded7; border-radius: .6rem; padding: .72rem .75rem; color: #25312d; background: #fff; font: inherit; font-size: var(--type-sm); }
+.form textarea { resize: vertical; }
+.form input:focus-visible, .form textarea:focus-visible, .form button:focus-visible { outline: 3px solid #86c4b5; outline-offset: 2px; }
+.privacyNotice { margin: 0; color: #737f78; font-size: var(--type-xs); line-height: 1.5; }
+.form button { min-height: 2.8rem; border: 0; border-radius: .6rem; padding: .65rem 1rem; color: #fff; background: #176b61; font: inherit; font-size: var(--type-sm); font-weight: var(--weight-bold); cursor: pointer; }
+.form button:hover { background: #11564e; }
+.form button:disabled { cursor: wait; opacity: .65; }
+.error, .success { margin: 0; border-radius: .55rem; padding: .65rem .75rem; font-size: var(--type-xs); }
+.error { color: #7a2e2e; background: #fff0ed; }
+.success { color: #285c48; background: #edf5ef; }
+.honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.footer { max-width: 1200px; margin: 3rem auto 0; border-top: 1px solid #dfe2da; padding-top: 1rem; color: #7a8580; font-size: var(--type-xs); }
+@media (max-width: 800px) { .layout { grid-template-columns: 1fr; gap: 1.4rem; } .contact { position: static; } }
+@media (max-width: 480px) { .page { padding-right: .8rem; padding-left: .8rem; } .header { align-items: flex-start; } }

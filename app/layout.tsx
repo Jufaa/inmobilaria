@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import AgencyBoundary from '@/components/AgencyBoundary';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import './globals.css';
 import 'mapbox-gl/dist/mapbox-gl.css';
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <AgencyBoundary>{children}</AgencyBoundary>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

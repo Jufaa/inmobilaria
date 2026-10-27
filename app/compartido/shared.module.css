@@ -1,0 +1,20 @@
+.page { min-height: 100vh; padding: 32px 0 60px; background: #f4f7f3; color: #17312d; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 0 auto 28px; }
+.header p { margin: 0 0 7px; color: #537364; font-size: var(--type-sm); font-weight: var(--weight-bold); text-transform: uppercase; letter-spacing: .06em; }
+.header h1 { margin: 0 0 8px; font-size: var(--type-display-sm); }
+.header span { color: #60766c; }
+.actions { display: flex; align-items: center; gap: 16px; }
+.actions a { color: #285644; }
+.cards { display: grid; gap: 34px; }
+.card { padding: 22px 0 8px; border-top: 1px solid #dce6df; }
+.card > header { margin: 0 0 18px; }
+.card > header h2 { margin: 0 0 5px; font-size: var(--type-xl); }
+.card > header p { margin: 0; color: #60766c; }
+.empty, .emptyCard { width: min(1200px, calc(100% - 40px)); margin: 40px auto; padding: 24px; border: 1px solid #dce6df; border-radius: 14px; background: white; }
+.emptyCard { margin: 0 auto 36px; }
+@media(max-width:650px) { .header { align-items: flex-start; flex-direction: column; } .actions { flex-wrap: wrap; } }
+:global(html[data-theme='dark']) .page { background: #101a16; color: #e4eee9; }
+:global(html[data-theme='dark']) .header p, :global(html[data-theme='dark']) .header span, :global(html[data-theme='dark']) .card > header p { color: #afc4b8; }
+:global(html[data-theme='dark']) .actions a { color: #b9d9ca; }
+:global(html[data-theme='dark']) .card { border-color: #33483f; }
+:global(html[data-theme='dark']) .empty, :global(html[data-theme='dark']) .emptyCard { border-color: #33483f; background: #15221d; }

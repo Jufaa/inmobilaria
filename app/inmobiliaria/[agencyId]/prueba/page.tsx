@@ -1,2 +1,5 @@
-import DemoWalkthrough from '@/components/DemoWalkthrough';
-export default function Page(){return <DemoWalkthrough/>;}
+import { redirect } from 'next/navigation';
+
+export default function Page() {
+  redirect('/');
+}

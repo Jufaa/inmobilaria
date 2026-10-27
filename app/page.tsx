@@ -1,4 +1,5 @@
-import Explorer from '@/components/Explorer';
+import { PlatformHome } from '@/components/PlatformHome';
+
 export default function Page() {
-  return <Explorer />;
+  return <PlatformHome />;
 }

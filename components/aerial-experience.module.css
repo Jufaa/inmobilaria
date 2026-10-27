@@ -1,0 +1,92 @@
+.experience { --ink: #203d37; }
+.aerialDialog, .tourDialog { position: fixed; inset: 0; width: 100vw; max-width: none; height: 100dvh; max-height: 100dvh; border: 0; padding: 0; margin: 0; background: #080e0c; color: #fff; overscroll-behavior: contain; }
+.tourDialog { overflow-y: auto; }
+.aerialDialog::backdrop, .tourDialog::backdrop, .editorDialog::backdrop { background: #10251dcc; backdrop-filter: blur(4px); }
+.closeTour { position: fixed; z-index: 10; top: 22px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; min-height: 41px; padding: 10px 15px; border: 1px solid #c7d3bc; border-radius: 6px; background: #edf3e7; color: #213f31; cursor: pointer; font: inherit; font-size: 11px; }
+.closeTour > span { padding: 2px 4px; border: 1px solid #9bad9260; border-radius: 3px; font-size: 8px; }
+.experience button:focus-visible, .experience a:focus-visible, .editor input:focus-visible, .editor textarea:focus-visible, .editor select:focus-visible { outline: 3px solid #be9859; outline-offset: 3px; }
+.eyebrow { font-size: 8px; letter-spacing: 1.5px; color: #8d7752; }
+.unavailable { display: grid; place-content: center; gap: 15px; height: 100%; padding: 25px; text-align: center; }
+.unavailable h2 { margin: 0; font-size: 25px; }
+.unavailable p { font-size: 13px; color: #b9cbb1; }
+.unavailable button { padding: 12px; border: 1px solid #c7d3bc; border-radius: 6px; background: #edf3e7; color: #213f31; cursor: pointer; }
+.notice { position: absolute; z-index: 4; top: 85px; left: 25px; max-width: min(350px,80vw); margin: 0; padding: 10px 13px; border-radius: 5px; background: #edf3e7; color: #213f31; font-size: 11px; }
+.editorDialog { width: min(840px, calc(100vw - 30px)); max-width: none; max-height: 90dvh; padding: 0; border: 1px solid #d7e0cc; border-radius: 12px; background: #f7f8f2; color: var(--ink); overscroll-behavior: contain; }
+.editor { padding: 28px; color: #203d37; }
+.editorHeader { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.editorHeader h2 { font-size: 29px; font-weight: 450; margin: 7px 0 0; letter-spacing: -.5px; }
+.editorHeader > button { display: grid; place-items: center; width: 33px; height: 33px; border: 1px solid #d9e2ce; border-radius: 50%; background: #edf2e6; color: #526948; cursor: pointer; }
+.editorNotice { padding: 13px 15px; border: 1px solid #dee6d5; border-radius: 6px; color: #7a8870; background: #eef3e7; font-size: 11px; line-height: 1.8; margin: 20px 0; }
+.editorProperty { padding: 19px; border: 1px solid #d9e2d0; border-radius: 8px; margin: 20px 0; min-width: 0; }
+.editorProperty legend { padding: 0 8px; font-size: 12px; font-weight: 600; }
+.reorder { display: flex; align-items: center; gap: 7px; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 1px solid #e0e7d8; }
+.reorder > span { flex: 1; color: #87927a; font-size: 10px; }
+.reorder button { display: grid; place-items: center; width: 29px; height: 29px; background: #edf2e6; color: #45643a; border: 1px solid #d2dec8; border-radius: 4px; cursor: pointer; }
+.reorder button:disabled { opacity: .35; cursor: default; }
+.editorGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.editorGrid label { display: grid; gap: 6px; min-width: 0; font-size: 10px; color: #6c7d60; }
+.editorGrid input, .editorGrid textarea, .editorGrid select { width: 100%; min-width: 0; padding: 10px; border: 1px solid #d3dec7; border-radius: 5px; background: #fff; color: #36502c; font: inherit; font-size: 12px; }
+.wideField { grid-column: 1 / -1; }
+.fieldHint { color: #8b947f; font-size: 9px; line-height: 1.8; margin-bottom: 0; }
+.editorError { padding: 12px 15px; border: 1px solid #d8ada0; border-radius: 5px; background: #fbede5; color: #8c4d39; font-size: 11px; line-height: 1.7; }
+.editorFooter { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-top: 10px; }
+.editorFooter > button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 11px 13px; border: 1px solid #cddbc0; border-radius: 5px; background: transparent; color: #718463; font: inherit; font-size: 11px; cursor: pointer; }
+.editorFooter > button.saveButton { border-color: #476d3b; color: #fff; background: #476d3b; }
+@media (max-width: 700px) {
+  .closeTour { top: auto; bottom: 18px; min-height: 43px; }
+  .editor { padding: 18px; }
+  .editorProperty { padding: 13px; }
+  .editorHeader h2 { font-size: 24px; }
+  .editorFooter { flex-direction: column-reverse; align-items: stretch; }
+  .notice { top: 117px; left: 12px; max-width: 65vw; }
+}
+@media (max-width: 450px) { .editorGrid { grid-template-columns: 1fr; } }
+.aerialExperience { position: relative; height: 100%; min-height: 480px; background: #111e1b; color: #fff; overflow: hidden; }
+.aerialCanvas { position: absolute; inset: 0; }
+.aerialHeader { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: start; justify-content: space-between; gap: 18px; padding: 22px 25px 65px; background: linear-gradient(#10241ce6, transparent); pointer-events: none; }
+.aerialHeader > * { pointer-events: auto; }
+.aerialHeader button, .aerialControls button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 10px 13px; border: 1px solid #ffffff50; border-radius: 6px; background: #15392bd9; backdrop-filter: blur(12px); color: #fff; font: inherit; font-size: 11px; cursor: pointer; }
+.aerialHeader > div { text-align: center; padding: 4px 10px; }
+.aerialHeader h1 { margin: 7px 0; font-size: clamp(22px, 3vw, 37px); font-weight: 450; }
+.aerialHeader > div > span { font-size: 8px; letter-spacing: 2px; color: #cad9c1; }
+.aerialControls { position: absolute; top: 135px; right: 25px; z-index: 2; display: flex; flex-direction: column; align-items: end; gap: 7px; }
+.aerialControls > button { min-width: 40px; }
+.aerialLoading { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); padding: 17px 22px; border: 1px solid #cad9c140; border-radius: 9px; background: #15392bd9; color: #e2ecd9; font-size: 13px; text-align: center; pointer-events: none; }
+.aerialError { position: absolute; z-index: 3; top: 24%; left: 50%; transform: translateX(-50%); width: min(460px, calc(100% - 35px)); padding: 25px; border: 1px solid #cad9c140; border-radius: 12px; background: #172f26f2; backdrop-filter: blur(15px); text-align: center; }
+.aerialError h2 { font-weight: 450; font-size: 22px; margin: 0 0 12px; }
+.aerialError p { color: #b9cbb1; font-size: 12px; line-height: 1.8; }
+.aerialError button { border: 1px solid #c4d1b8; border-radius: 5px; padding: 11px 15px; background: #e9efdf; color: #203d37; font: inherit; cursor: pointer; }
+.aerialError small { display: block; margin-top: 13px; font-size: 10px; color: #a7b99e; line-height: 1.7; }
+.aerialFooter { position: absolute; bottom: 36px; left: 22px; right: 22px; z-index: 2; padding: 16px; border: 1px solid #ffffff35; border-radius: 12px; background: #102a20ed; backdrop-filter: blur(15px); box-shadow: 0 8px 35px #0004; }
+.aerialLegend { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.aerialLegend > span { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #e6f0df; }
+.aerialLegend p { margin: 0; font-size: 10px; color: #a9bca0; }
+.aerialListings { display: flex; gap: 9px; overflow-x: auto; padding: 3px 3px 8px; scroll-snap-type: x proximity; }
+.aerialListings > button { display: flex; align-items: center; gap: 9px; flex: 1 0 205px; max-width: 300px; scroll-snap-align: start; padding: 14px 11px; border: 1px solid #c7d8b040; border-radius: 7px; background: #d2e5c00c; color: #edf4e8; text-align: left; font: inherit; cursor: pointer; }
+.aerialListings > button:hover { border-color: #d2e5c0; background: #d2e5c01f; }
+.aerialNumber { display: grid; place-items: center; flex-shrink: 0; width: 29px; height: 29px; border: 1px solid #c7d8b070; border-radius: 50%; font-size: 11px; color: #d9c79f; }
+.aerialListings > button > span:nth-child(2) { display: grid; gap: 6px; flex: 1; }
+.aerialListings small { font-size: 9px; color: #b9cbaa; }
+.aerialListings strong { font-size: 12px; font-weight: 450; }
+.aerialDisclaimer { margin: 9px 0 0; font-size: 9px; line-height: 1.7; color: #a7b99e; }
+@media (max-width: 700px) {
+  .aerialHeader { padding: 12px 12px 45px; gap: 7px; align-items: start; }
+  .aerialHeader > div { position: absolute; top: 63px; left: 12px; text-align: left; padding: 0; }
+  .aerialHeader h1 { font-size: 23px; }
+  .aerialHeader button { font-size: 10px; padding: 9px; }
+  .aerialControls { top: 73px; right: 12px; gap: 5px; }
+  .aerialControls > button { min-height: 32px; padding: 7px; font-size: 9px; }
+  .aerialFooter { bottom: 35px; left: 9px; right: 9px; padding: 12px; }
+  .aerialLegend { flex-direction: column; align-items: start; gap: 6px; }
+  .aerialLegend > span { font-size: 11px; }
+  .aerialLegend p { font-size: 9px; }
+  .aerialListings > button { flex-basis: 210px; }
+  .aerialDisclaimer { font-size: 8px; }
+  .aerialError { top: 25%; max-height: 35%; overflow-y: auto; padding: 17px; }
+  .aerialError h2 { font-size: 18px; }
+}
+@media (max-height: 560px) {
+  .aerialFooter { padding: 9px; }
+  .aerialLegend p, .aerialDisclaimer { display: none; }
+  .aerialListings > button { padding: 8px; }
+}

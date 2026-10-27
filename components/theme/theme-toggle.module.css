@@ -1,0 +1,2 @@
+.control { display: inline-flex; align-items: center; gap: 7px; color: inherit; font-size: var(--type-sm); }
+.control select { min-height: 36px; padding: 5px 8px; border: 1px solid currentColor; border-radius: 6px; background: transparent; color: inherit; font: inherit; }

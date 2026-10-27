@@ -1,0 +1,25 @@
+.page { width: min(1120px, calc(100% - 32px)); margin: 28px auto 56px; color: #17312d; }
+.heading { margin-bottom: 22px; }
+.heading h1 { margin: 4px 0 8px; font-family: var(--font-ui); font-size: var(--type-page-title); font-weight: var(--weight-semibold); letter-spacing: -.04em; line-height: var(--line-tight); }
+.heading > p:last-child, .note { color: #60766c; font-size: var(--type-sm); }
+.eyebrow { margin: 0; color: #537767; font-size: var(--type-xs); font-weight: var(--weight-bold); letter-spacing: .12em; text-transform: uppercase; }
+.metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.metrics article, .panel { border: 1px solid #d9e4df; border-radius: 14px; background: #fff; }
+.metrics article { display: grid; gap: 12px; min-height: 90px; padding: 16px; }
+.metrics span { color: #60766c; font-size: var(--type-sm); }
+.metrics strong { font-size: var(--type-2xl); letter-spacing: -.04em; }
+.panel { min-width: 0; padding: 18px; }
+.panel h2 { margin: 0 0 16px; font-size: var(--type-md); }
+.tableScroll { overflow-x: auto; }
+.panel table { width: 100%; border-collapse: collapse; font-size: var(--type-sm); text-align: left; }
+.panel th, .panel td { padding: 9px 10px; border-bottom: 1px solid #e9efec; white-space: nowrap; }
+.panel thead th { color: #60766c; font-size: var(--type-sm); font-weight: var(--weight-semibold); }
+.panel tbody th { font-weight: var(--weight-semibold); }
+.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.ranking { display: grid; gap: 12px; margin: 0; padding-left: 20px; }
+.ranking li { padding-left: 3px; }
+.ranking li span, .ranking li strong { display: block; }
+.ranking li strong { margin-top: 3px; color: #60766c; font-size: var(--type-sm); font-weight: var(--weight-semibold); }
+.empty { color: #71847b; font-size: var(--type-sm); }
+.note { margin-top: 16px; }
+@media (max-width: 780px) { .page { margin-top: 24px; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .columns { grid-template-columns: 1fr; } }

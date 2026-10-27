@@ -1,0 +1,68 @@
+.page { min-height: 100dvh; max-width: 1060px; margin: 0 auto; padding: 28px 28px 72px; color: #202b28; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 22px; border-bottom: 1px solid #e1e7e3; }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: #202b28; font-size: var(--type-xl); font-weight: var(--weight-bold); letter-spacing: -.055em; text-decoration: none; }
+.brand > span:last-child > span { color: #c27c4c; }
+.brandMark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 13px; background: #e8f0eb; color: #245b49; }
+.account { display: flex; align-items: center; gap: 14px; }
+.email { color: #687772; font-size: var(--type-sm); }
+.intro { max-width: 670px; margin: 58px 0 32px; }
+.eyebrow { margin: 0 0 10px; color: #547365; font-size: var(--type-xs); font-weight: var(--weight-bold); letter-spacing: .11em; text-transform: uppercase; }
+.intro h1 { margin: 0; color: #202b28; font-size: var(--type-display-sm); font-weight: var(--weight-bold); letter-spacing: -.055em; line-height: 1.05; }
+.intro > p:last-child { max-width: 56ch; margin: 14px 0 0; color: #687772; font-size: var(--type-md); line-height: 1.6; }
+.ownerBanner { display: flex; align-items: center; gap: 13px; margin-bottom: 15px; padding: 15px 17px; border: 1px solid #d8e5dc; border-radius: 15px; background: #edf4ef; }
+.ownerIcon { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; border-radius: 12px; background: #dcebe0; color: #245b49; }
+.ownerBanner p { display: grid; gap: 3px; margin: 0; }
+.ownerBanner strong { color: #26382f; font-size: var(--type-sm); }
+.ownerBanner p span { color: #607269; font-size: var(--type-sm); }
+.ownerActions { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 36px; }
+.createLink, .sharedLink { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 14px; border: 1px solid transparent; border-radius: 11px; font-size: var(--type-sm); font-weight: var(--weight-semibold); text-decoration: none; transition: background .15s ease, transform .15s ease; }
+.createLink { background: #245b49; color: #fff; }
+.createLink:hover { background: #194936; transform: translateY(-1px); }
+.sharedLink { border-color: #dce5df; background: #fff; color: #2b493a; }
+.sharedLink:hover { background: #f6f9f6; }
+.agenciesSection { margin-top: 38px; }
+.sectionHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+.sectionHeading h2 { margin: 0; color: #26332d; font-size: var(--type-md); font-weight: var(--weight-bold); letter-spacing: -.02em; }
+.sectionHeading > span { color: #77847d; font-size: var(--type-sm); }
+.list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.agencyCard { display: flex; align-items: center; gap: 14px; min-height: 82px; padding: 15px 17px; border: 1px solid #e0e7e2; border-radius: 15px; background: #fff; box-shadow: 0 2px 6px #20382b07; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.agencyCard:hover { transform: translateY(-1px); border-color: #c5d4ca; box-shadow: 0 8px 20px #20382b0c; }
+.agencyIcon { display: grid; flex: 0 0 44px; width: 44px; height: 44px; place-items: center; border: 1px solid #e0ebe3; border-radius: 13px; background: #f2f6f3; color: #426b56; }
+.agencyInfo { display: grid; flex: 1; gap: 4px; min-width: 0; }
+.agencyInfo strong { overflow: hidden; color: #25322c; font-size: var(--type-md); font-weight: var(--weight-bold); text-overflow: ellipsis; white-space: nowrap; }
+.agencyInfo span, .accessNote { color: #77847d; font-size: var(--type-sm); }
+.openLink { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 12px; border-radius: 10px; background: #f0f5f1; color: #245b49; font-size: var(--type-sm); font-weight: var(--weight-bold); text-decoration: none; white-space: nowrap; }
+.openLink:hover { background: #e5eee7; }
+.emptyState { display: grid; justify-items: start; gap: 9px; padding: 26px; border: 1px dashed #cbd8cf; border-radius: 15px; background: #fafcfb; }
+.emptyState strong { color: #26332d; font-size: var(--type-md); }
+.emptyState > span { max-width: 52ch; margin-bottom: 7px; color: #687772; font-size: var(--type-sm); line-height: 1.5; }
+:global(html[data-theme='dark']) .page { color: #e7eee9; }
+:global(html[data-theme='dark']) .header { border-color: #33483f; }
+:global(html[data-theme='dark']) .brand, :global(html[data-theme='dark']) .intro h1, :global(html[data-theme='dark']) .sectionHeading h2 { color: #e7eee9; }
+:global(html[data-theme='dark']) .brandMark { background: #24392f; color: #a8d0b8; }
+:global(html[data-theme='dark']) .email, :global(html[data-theme='dark']) .intro > p:last-child { color: #a8b8af; }
+:global(html[data-theme='dark']) .eyebrow { color: #a8d0b8; }
+:global(html[data-theme='dark']) .ownerBanner { border-color: #33483f; background: #1a2c22; }
+:global(html[data-theme='dark']) .ownerIcon { background: #263d30; color: #b8d9c4; }
+:global(html[data-theme='dark']) .ownerBanner strong { color: #e0ece4; }
+:global(html[data-theme='dark']) .ownerBanner p span, :global(html[data-theme='dark']) .sectionHeading > span { color: #a8b8af; }
+:global(html[data-theme='dark']) .sharedLink, :global(html[data-theme='dark']) .agencyCard { border-color: #33483f; background: #15221d; color: #d8e8dd; }
+:global(html[data-theme='dark']) .sharedLink:hover { background: #20342b; }
+:global(html[data-theme='dark']) .openLink { background: #20342b; color: #b9ddc5; }
+:global(html[data-theme='dark']) .agencyIcon { border-color: #33483f; background: #1d3026; color: #b8d9c4; }
+:global(html[data-theme='dark']) .agencyInfo strong, :global(html[data-theme='dark']) .emptyState strong { color: #e7eee9; }
+:global(html[data-theme='dark']) .agencyInfo span, :global(html[data-theme='dark']) .accessNote, :global(html[data-theme='dark']) .emptyState > span { color: #a8b8af; }
+:global(html[data-theme='dark']) .emptyState { border-color: #41564a; background: #15221d; }
+@media(max-width:600px) {
+  .page { padding: 18px 16px 52px; }
+  .header { padding-bottom: 16px; }
+  .account { gap: 8px; }
+  .email { max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .intro { margin: 42px 0 25px; }
+  .intro > p:last-child { font-size: var(--type-sm); }
+  .agencyCard { align-items: flex-start; flex-wrap: wrap; gap: 10px; padding: 13px; }
+  .agencyIcon { flex-basis: 40px; width: 40px; height: 40px; }
+  .agencyInfo { flex-basis: calc(100% - 54px); align-self: center; }
+  .openLink { margin-left: 50px; }
+  .accessNote { margin-left: 50px; }
+}

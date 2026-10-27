@@ -1,2 +1,5 @@
-import SellerDashboard from '@/components/SellerDashboard';
-export default function Page(){return <SellerDashboard/>;}
+import { redirect } from 'next/navigation';
+
+export default function Page() {
+  redirect('/workspace');
+}

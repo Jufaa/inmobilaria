@@ -102,3 +102,13 @@ These address concrete source-level clutter and camera causes. They are not meas
 
 The public ARS/USD selector filters properties by their original price currency. Prices, expenses, and deposits are never converted. Budgets and sorting compare only matching native currencies; mixed-currency costs remain separate. All quote API/network/cache behavior has been removed. The default brand remains Nombre de Empresa and map reset restores the complete camera with zero bearing.
 # inmobilaria
+
+## Authentication and backend foundation
+
+Google sign-in, PostgreSQL/Prisma setup, and multi-tenant agency membership setup are documented in [docs/backend-foundation.md](docs/backend-foundation.md). The existing property panel remains a local demo and is not yet connected to the database.
+
+## Fictitious shared demo access
+
+The optional demo gate is disabled unless `DEMO_ACCESS_ENABLED=true`. When enabled, set the server-only `DEMO_ADMIN_USERNAME=admin`, `DEMO_ADMIN_PASSWORD=admin`, `DEMO_ADMIN_EMAIL`, and `DEMO_AGENCY_SLUG` values in the deployment environment. The intentionally shared `admin/admin` password is only for fictional presentation data; never reuse it for customers, operational records, or another account. Do not expose these variables through `NEXT_PUBLIC_*` or client code. Demo mode disables Google sign-in and registration and requires the provisioned demo identity on every application route except login, Auth.js endpoints, and static assets.
+
+Provision the dedicated demo user, agency, and its sole `ADMIN` membership with `pnpm db:seed:demo-access` only against an explicitly configured local PostgreSQL database. The idempotent command requires both `DEMO_ACCESS_ENABLED=true` and `DEMO_DATA_SEED=true` and refuses hosted, production, CI, non-loopback, and identity-collision targets. It was not run as part of implementation. A deployment database must be provisioned through an explicitly selected and authorized hosting workflow before demo mode is enabled there.

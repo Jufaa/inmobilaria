@@ -1,0 +1,129 @@
+.artworkMap {
+  display: grid;
+  gap: 0.75rem;
+  color: #f2f4f5;
+}
+
+.notice,
+.disclosure {
+  margin: 0;
+  color: #c0c8cc;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.viewport {
+  position: relative;
+  width: min(100%, 1100px);
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 1rem;
+  background: #20272a;
+  isolation: isolate;
+}
+
+.artwork {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.emptyArtwork {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: #e5e7eb;
+  text-align: center;
+  background: linear-gradient(145deg, #293538, #172124);
+}
+
+.emptyArtwork span {
+  color: #aebbc0;
+  font-size: 0.85rem;
+}
+
+.zone {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  min-height: 1.5rem;
+  overflow: hidden;
+  border: 2px dashed;
+  border-radius: 0.5rem;
+  color: #111827;
+  font: inherit;
+  font-size: clamp(0.62rem, 1.5vw, 0.9rem);
+  font-weight: 700;
+  text-shadow: 0 1px 2px #fff;
+  cursor: pointer;
+}
+
+.zone:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.point {
+  position: absolute;
+  z-index: 2;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 7px #000a;
+  transform: translate(-50%, -50%);
+}
+
+.point span {
+  position: absolute;
+  left: 0.75rem;
+  top: -0.55rem;
+  width: max-content;
+  max-width: 14rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.35rem;
+  color: #fff;
+  background: #172124eF;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #e2e8ea;
+  font-size: 0.8rem;
+}
+
+.legend li span {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+
+@media (max-width: 640px) {
+  .zone {
+    padding: 0.15rem;
+  }
+}

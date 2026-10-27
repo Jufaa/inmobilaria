@@ -14,17 +14,25 @@ import {
 import mapboxgl from 'mapbox-gl';
 import type { Property } from '@/lib/properties';
 import type { MapBounds, Zone } from '@/lib/zones';
+import type { PresentationMapStyle, PresentationPoint } from '@/lib/agency-presentation';
+
+type MapProperty = Pick<Property, 'id' | 'latitude' | 'longitude' | 'price' | 'currency' | 'address'>;
 
 type Props = {
-  properties: Property[];
+  controlsBlocked?: boolean;
+  properties: MapProperty[];
   selected: number | null;
   onSelect: (id: number) => void;
+  onAreaSelect?: (id: string) => void;
   visible: boolean;
-  focusProperty: Property | null;
+  focusProperty: MapProperty | null;
   focusRevision: number;
   areas: Zone[];
   zoneRevision: number;
   onSearchArea: (bounds: MapBounds) => void;
+  overview?: boolean;
+  appearance?: PresentationMapStyle;
+  pointsOfInterest?: PresentationPoint[];
 };
 type MapState = 'missing' | 'loading' | 'ready' | 'error' | 'unsupported';
 const initialView = {
@@ -33,27 +41,43 @@ const initialView = {
   pitch: 45,
   bearing: 0,
 };
+const overviewView = { ...initialView, zoom: 12.2, pitch: 0 };
 const publicToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim();
 const hasPublicToken = !!publicToken?.startsWith('pk.');
 
 export default function CityMap({
+  controlsBlocked = false,
   properties,
   selected,
   onSelect,
+  onAreaSelect,
   visible,
   focusProperty,
   focusRevision,
   areas,
   zoneRevision,
   onSearchArea,
+  overview = false,
+  appearance,
+  pointsOfInterest = [],
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markers = useRef(new Map<string, mapboxgl.Marker>());
-  const lastSourceProperties = useRef<Property[] | null>(null);
+  const pointMarkers = useRef(new Map<string, mapboxgl.Marker>());
+  const lastSourceProperties = useRef<MapProperty[] | null>(null);
   const handledFocusRevision = useRef(0);
   const handledZoneRevision = useRef(0);
   const [areaDirty, setAreaDirty] = useState(false);
+  const [viewControlsOpen, setViewControlsOpen] = useState(false);
+  const viewToggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if(controlsBlocked) setViewControlsOpen(false); }, [controlsBlocked]);
+  useEffect(() => {
+    if (!viewControlsOpen) return;
+    const close = (event: KeyboardEvent) => { if(event.key === 'Escape') {setViewControlsOpen(false);viewToggle.current?.focus();} };
+    document.addEventListener('keydown',close);
+    return () => document.removeEventListener('keydown',close);
+  }, [viewControlsOpen]);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const [state, setState] = useState<MapState>(
@@ -77,7 +101,7 @@ export default function CityMap({
         container: host.current,
         accessToken: publicToken,
         style: 'mapbox://styles/mapbox/standard',
-        ...initialView,
+        ...(overview ? overviewView : initialView),
         minZoom: 10,
         maxZoom: 20,
         maxPitch: 70,
@@ -93,9 +117,9 @@ export default function CityMap({
             show3dFacades: false,
             showPointOfInterestLabels: false,
             showTransitLabels: false,
-            colorBuildings: '#d4cbc0',
-            colorLand: '#f2ede4',
-            colorWater: '#a9cddd',
+            colorBuildings: appearance?.buildingColor ?? '#d4cbc0',
+            colorLand: appearance?.landColor ?? '#f2ede4',
+            colorWater: appearance?.waterColor ?? '#a9cddd',
             colorRoads: '#ffffff',
             colorGreenspace: '#bed3b7',
           },
@@ -110,7 +134,7 @@ export default function CityMap({
     }
     mapRef.current = map;
     handledFocusRevision.current = 0;
-    handledZoneRevision.current = 0;
+    handledZoneRevision.current = overview ? zoneRevision : 0;
     setMapGeneration((generation) => generation + 1);
     map.addControl(
       new mapboxgl.AttributionControl({ compact: true }),
@@ -146,6 +170,8 @@ export default function CityMap({
       observer.disconnect();
       markers.current.forEach((marker) => marker.remove());
       markers.current.clear();
+      pointMarkers.current.forEach((marker) => marker.remove());
+      pointMarkers.current.clear();
       mapRef.current = null;
       map.remove();
     };
@@ -346,7 +372,7 @@ export default function CityMap({
       const bounds = area.bounds;
       return {
         type: 'Feature' as const,
-        properties: { label: `${area.label} · Área orientativa` },
+        properties: { areaId: area.id, label: `${area.label} · Área orientativa` },
         geometry: {
           type: 'Polygon' as const,
           coordinates: [
@@ -373,7 +399,7 @@ export default function CityMap({
         type: 'fill',
         source: 'search-zone',
         slot: 'middle',
-        paint: { 'fill-color': '#0f766e', 'fill-opacity': 0.045 },
+        paint: { 'fill-color': appearance?.accentColor ?? '#0f766e', 'fill-opacity': 0.045 },
       });
       map.addLayer({
         id: 'search-zone-outline',
@@ -381,7 +407,7 @@ export default function CityMap({
         source: 'search-zone',
         slot: 'middle',
         paint: {
-          'line-color': '#0f766e',
+          'line-color': appearance?.accentColor ?? '#0f766e',
           'line-width': 2,
           'line-dasharray': [3, 2],
           'line-opacity': 0.8,
@@ -398,7 +424,7 @@ export default function CityMap({
           'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
         },
         paint: {
-          'text-color': '#115e59',
+          'text-color': appearance?.accentColor ?? '#115e59',
           'text-halo-color': '#ffffff',
           'text-halo-width': 2,
         },
@@ -430,7 +456,114 @@ export default function CityMap({
           : 650,
       });
     }
-  }, [areas, zoneRevision, mapGeneration, visible, state]);
+  }, [areas, zoneRevision, mapGeneration, visible, state, appearance]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state !== 'ready' || !appearance) return;
+    map.setConfigProperty('basemap', 'colorLand', appearance.landColor);
+    map.setConfigProperty('basemap', 'colorBuildings', appearance.buildingColor);
+    map.setConfigProperty('basemap', 'colorWater', appearance.waterColor);
+    if (map.getLayer('search-zone-fill')) map.setPaintProperty('search-zone-fill', 'fill-color', appearance.accentColor);
+    if (map.getLayer('search-zone-outline')) map.setPaintProperty('search-zone-outline', 'line-color', appearance.accentColor);
+    if (map.getLayer('search-zone-label')) map.setPaintProperty('search-zone-label', 'text-color', appearance.accentColor);
+  }, [appearance, mapGeneration, state]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state !== 'ready') return;
+    const wanted = new Set<string>();
+    for (const point of pointsOfInterest) {
+      if (!Number.isFinite(point.latitude) || Math.abs(point.latitude) > 90 || !Number.isFinite(point.longitude) || Math.abs(point.longitude) > 180) continue;
+      wanted.add(point.id);
+      let marker = pointMarkers.current.get(point.id);
+      if (!marker) {
+        const element = document.createElement('div');
+        element.className = 'presentation-map-poi';
+        element.setAttribute('role', 'img');
+        marker = new mapboxgl.Marker({ element, anchor: 'bottom' })
+          .setLngLat([point.longitude, point.latitude])
+          .addTo(map);
+        pointMarkers.current.set(point.id, marker);
+      }
+      marker.setLngLat([point.longitude, point.latitude]);
+      const element = marker.getElement();
+      element.textContent = point.name;
+      element.setAttribute('aria-label', `Punto de interés: ${point.name}`);
+      element.style.backgroundColor = point.color;
+      element.style.color = '#ffffff';
+      element.style.padding = '4px 8px';
+      element.style.borderRadius = '999px';
+      element.style.fontSize = '12px';
+      element.style.fontWeight = '700';
+      element.style.whiteSpace = 'nowrap';
+      element.style.boxShadow = '0 2px 8px #0006';
+    }
+    pointMarkers.current.forEach((marker, id) => {
+      if (!wanted.has(id)) {
+        marker.remove();
+        pointMarkers.current.delete(id);
+      }
+    });
+  }, [pointsOfInterest, mapGeneration, state]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state !== 'ready' || !visible || !onAreaSelect) return;
+    let focusingArea = false;
+    let focusTimer: ReturnType<typeof setTimeout> | undefined;
+    let focusedAreaId: string | null = null;
+    const finishAreaFocus = () => {
+      if (!focusedAreaId) return;
+      const id = focusedAreaId;
+      focusedAreaId = null;
+      focusingArea = false;
+      if (focusTimer) clearTimeout(focusTimer);
+      focusTimer = undefined;
+      onAreaSelect(id);
+    };
+    const click = (event: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
+      if (focusingArea) return;
+      const id = event.features?.[0]?.toJSON().properties?.areaId;
+      if (typeof id !== 'string') return;
+      const area = areas.find(item => item.id === id);
+      if (!area) return;
+      const bounds = new mapboxgl.LngLatBounds();
+      bounds.extend([area.bounds.west, area.bounds.south]);
+      bounds.extend([area.bounds.east, area.bounds.north]);
+      // Finish any unrelated camera motion before listening for this zone's moveend.
+      map.stop();
+      focusingArea = true;
+      focusedAreaId = id;
+      map.once('moveend', finishAreaFocus);
+      focusTimer = setTimeout(finishAreaFocus, 1800);
+      try {
+        map.fitBounds(bounds, {
+          padding: (host.current?.clientWidth ?? 1200) < 900 ? 48 : 110,
+          maxZoom: 16.5,
+          pitch: 45,
+          bearing: 0,
+          duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1200,
+        });
+      } catch {
+        map.off('moveend', finishAreaFocus);
+        finishAreaFocus();
+      }
+    };
+    const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
+    const leave = () => { map.getCanvas().style.cursor = ''; };
+    map.on('click', 'search-zone-fill', click);
+    map.on('mouseenter', 'search-zone-fill', enter);
+    map.on('mouseleave', 'search-zone-fill', leave);
+    return () => {
+      map.off('click', 'search-zone-fill', click);
+      map.off('mouseenter', 'search-zone-fill', enter);
+      map.off('mouseleave', 'search-zone-fill', leave);
+      map.off('moveend', finishAreaFocus);
+      if (focusTimer) clearTimeout(focusTimer);
+      leave();
+    };
+  }, [state, visible, onAreaSelect, mapGeneration, areas]);
 
   const searchArea = () => {
     const bounds = mapRef.current?.getBounds();
@@ -566,7 +699,14 @@ export default function CityMap({
           ) : null}
         </div>
       )}
-      <div className="map-tools">
+      <div className="mobile-map-view-actions">
+        <button ref={viewToggle} onClick={() => setViewControlsOpen(!viewControlsOpen)} aria-expanded={viewControlsOpen} aria-controls="map-view-options" disabled={!available}>Vista</button>
+        <button onClick={() => mapRef.current?.zoomIn({duration:reducedMotion()?0:300})} disabled={!available} aria-label="Acercar mapa"><Plus size={21}/></button>
+        <button onClick={() => mapRef.current?.zoomOut({duration:reducedMotion()?0:300})} disabled={!available} aria-label="Alejar mapa"><Minus size={21}/></button>
+      </div>
+      <div id="map-view-options" className={`map-tools ${viewControlsOpen ? 'mobile-options-open' : ''}`}>
+        <button className="mobile-view-mode" onClick={toggle} disabled={!available}>{flat ? 'Ver en 3D' : 'Vista plana'}</button>
+        <button className="mobile-view-close" onClick={() => {setViewControlsOpen(false);viewToggle.current?.focus();}}>Cerrar vista <span aria-hidden="true">✕</span></button>
         <button
           onClick={() =>
             mapRef.current?.zoomIn({ duration: reducedMotion() ? 0 : 300 })

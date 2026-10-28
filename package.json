@@ -10,31 +10,34 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:seed:sample": "node --experimental-strip-types scripts/seed-sample.mjs",
     "db:seed:demo-access": "node --experimental-strip-types scripts/seed-demo-access.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
+    "@neon/config": "^1.9.4",
+    "@neon/env": "^1.6.5",
     "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^7.0.0",
+    "lucide-react": "1.28.0",
+    "mapbox-gl": "3.32.0",
     "next": "16.3.8",
     "next-auth": "^5.0.0-beta.32",
     "pg": "^8.16.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "three": "0.180.0",
-    "lucide-react": "1.28.0",
-    "mapbox-gl": "3.32.0"
+    "three": "0.180.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.15.5",
-    "dotenv": "^17.2.3",
-    "prisma": "^7.0.0",
-    "typescript": "5.9.3",
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.15.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/three": "^0.180.0"
+    "@types/three": "^0.180.0",
+    "dotenv": "^17.2.3",
+    "prisma": "^7.0.0",
+    "typescript": "5.9.3"
   }
 }

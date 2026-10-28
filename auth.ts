@@ -4,7 +4,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import { normalizeEmail, verifyPassword } from '@/lib/auth/password-auth';
-import { readDemoAccessConfig } from '@/lib/auth/demo-access';
+import { platformDemoIdentity, readDemoAccessConfig } from '@/lib/auth/demo-access';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const demoAccess = readDemoAccessConfig();
@@ -25,7 +25,12 @@ const emailPasswordProvider = Credentials({
         where: { email: demoAccess.email },
         select: { id: true, name: true, email: true, passwordHash: true, platformRole: true },
       });
-      if (!user?.email || user.platformRole !== 'USER' || !await verifyPassword(password, user.passwordHash)) return null;
+      if (!user?.email || user.email.toLowerCase() !== demoAccess.email || !await verifyPassword(password, user.passwordHash)) return null;
+      if (demoAccess.platformOwner) {
+        if (user.id !== platformDemoIdentity.id || user.platformRole !== 'OWNER') return null;
+        return { id: user.id, name: user.name, email: user.email };
+      }
+      if (user.platformRole !== 'USER') return null;
       const memberships = await prisma.membership.findMany({
         where: { userId: user.id },
         select: { role: true, agency: { select: { slug: true } } },
@@ -47,6 +52,7 @@ const emailPasswordProvider = Credentials({
     const email = normalizeEmail(credentials.email);
     if (!email || email.length > 254) return null;
     const user = await prisma.user.findUnique({ where: { email } });
+    if (user?.id === platformDemoIdentity.id || user?.email?.toLowerCase() === platformDemoIdentity.email) return null;
     if (!user?.emailVerified || !await verifyPassword(password, user.passwordHash)) return null;
 
     return { id: user.id, name: user.name, email: user.email };
@@ -61,6 +67,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: '/login' },
   session: { strategy: 'jwt' },
   callbacks: {
+    async jwt({ token }) {
+      if (token.sub === platformDemoIdentity.id && !demoAccess?.platformOwner) return null;
+      return token;
+    },
     async signIn({ account, profile }) {
       if (account?.provider === 'credentials') return true;
       if (account?.provider !== 'google') return false;

@@ -1,4 +1,7 @@
+export const platformDemoIdentity = { id: 'territorio-platform-demo-owner', email: 'platform-admin@demo.invalid' } as const;
+
 export type DemoAccessConfig = {
+  platformOwner?: boolean;
   username: string;
   password: string;
   email: string;
@@ -14,6 +17,10 @@ export function isDemoAccessEnabled(environment: Environment = process.env) {
 export function readDemoAccessConfig(environment: Environment = process.env): DemoAccessConfig | null {
   if (!isDemoAccessEnabled(environment)) return null;
 
+  const platformOwner = environment.DEMO_PLATFORM_OWNER_ENABLED === 'true';
+  if (platformOwner && environment.DEMO_FICTITIOUS_DATA_CONFIRMED !== 'true') {
+    throw new Error('Global demo requires explicit fictitious-data confirmation.');
+  }
   const values = {
     username: environment.DEMO_ADMIN_USERNAME?.trim(),
     password: environment.DEMO_ADMIN_PASSWORD,
@@ -24,7 +31,7 @@ export function readDemoAccessConfig(environment: Environment = process.env): De
     ['DEMO_ADMIN_USERNAME', values.username],
     ['DEMO_ADMIN_PASSWORD', values.password],
     ['DEMO_ADMIN_EMAIL', values.email],
-    ['DEMO_AGENCY_SLUG', values.agencySlug],
+    ...(!platformOwner ? [['DEMO_AGENCY_SLUG', values.agencySlug]] : []),
   ] as const;
   for (const [name, value] of required) {
     if (!value) throw new Error(`Demo access is enabled but ${name} is not configured.`);
@@ -35,7 +42,10 @@ export function readDemoAccessConfig(environment: Environment = process.env): De
   if (values.username !== 'admin' || values.password !== 'admin') {
     throw new Error('Fictitious demo access credentials must be admin/admin.');
   }
-  return values as DemoAccessConfig;
+  if (platformOwner && values.email !== platformDemoIdentity.email) {
+    throw new Error('Global demo requires the dedicated platform demo identity.');
+  }
+  return { ...values, agencySlug: values.agencySlug ?? '', ...(platformOwner ? { platformOwner: true } : {}) } as DemoAccessConfig;
 }
 
 export function isDemoIdentity(session: { user?: { email?: string | null } } | null | undefined, config: Pick<DemoAccessConfig, 'email'>) {

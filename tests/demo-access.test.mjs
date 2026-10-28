@@ -32,3 +32,11 @@ test('only login, Auth.js endpoints, and static assets bypass the demo gate', ()
   }
   assert.equal(isDemoProtectedPath('/login/help'), true);
 });
+
+test('global demo requires explicit fictitious-data confirmation and a dedicated identity', () => {
+  const env = { DEMO_ACCESS_ENABLED: 'true', DEMO_ADMIN_USERNAME: 'admin', DEMO_ADMIN_PASSWORD: 'admin', DEMO_ADMIN_EMAIL: 'platform-admin@demo.invalid', DEMO_PLATFORM_OWNER_ENABLED: 'true' };
+  assert.throws(() => readDemoAccessConfig(env), /fictitious/i);
+  const config = readDemoAccessConfig({ ...env, DEMO_FICTITIOUS_DATA_CONFIRMED: 'true' });
+  assert.equal(config.platformOwner, true);
+  assert.throws(() => readDemoAccessConfig({ ...env, DEMO_FICTITIOUS_DATA_CONFIRMED: 'true', DEMO_ADMIN_EMAIL: 'someone@example.com' }), /dedicated/i);
+});

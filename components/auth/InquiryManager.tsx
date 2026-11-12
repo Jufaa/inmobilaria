@@ -1,5 +1,7 @@
 'use client';
 
+import { EditableForm } from './WorkspaceEditPermission';
+
 import { useActionState } from 'react';
 import {
   updateInquiryStatusAction,
@@ -32,7 +34,7 @@ function InquiryStatusForm({ agencySlug, inquiry }: { agencySlug: string; inquir
   const action = updateInquiryStatusAction.bind(null, agencySlug);
   const [state, formAction, pending] = useActionState(action, {} satisfies InquiryStatusActionState);
   return (
-    <form className={styles.statusForm} action={formAction}>
+    <EditableForm className={styles.statusForm} action={formAction}>
       <input type="hidden" name="inquiryId" value={inquiry.id} />
       <label>
         Seguimiento
@@ -43,7 +45,7 @@ function InquiryStatusForm({ agencySlug, inquiry }: { agencySlug: string; inquir
       <button type="submit" disabled={pending}>{pending ? 'Guardando…' : 'Actualizar'}</button>
       {state.error && <p className={styles.error} role="alert">{state.error}</p>}
       {state.success && <p className={styles.success} role="status">{state.success}</p>}
-    </form>
+    </EditableForm>
   );
 }
 

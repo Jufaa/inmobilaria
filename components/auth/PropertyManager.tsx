@@ -1,5 +1,7 @@
 'use client';
 
+import { EditableForm, useWorkspaceEditPermission } from './WorkspaceEditPermission';
+
 import { useActionState, useState } from 'react';
 import {
   createPropertyAction,
@@ -49,7 +51,7 @@ function PropertyForm({
   const [state, formAction, pending] = useActionState(action, emptyState);
 
   return (
-    <form action={formAction} className={styles.form}>
+    <EditableForm action={formAction} className={styles.form}>
       {property && <input type="hidden" name="propertyId" value={property.id} />}
       <div className={styles.formHeading}>
         <div>
@@ -77,10 +79,10 @@ function PropertyForm({
       </div>
       <Feedback state={state} />
       <div className={styles.formFooter}>
-        <p>Las imágenes, videos y recorridos 360° todavía no se pueden cargar.</p>
+        <p>Las fotos se cargan desde el mapa de la inmobiliaria.</p>
         <button className={styles.primaryButton} type="submit" disabled={pending}>{pending ? 'Guardando…' : 'Guardar propiedad'}</button>
       </div>
-    </form>
+    </EditableForm>
   );
 }
 
@@ -88,12 +90,12 @@ function AvailabilityForm({ agencySlug, property }: { agencySlug: string; proper
   const action = updatePropertyAvailabilityAction.bind(null, agencySlug);
   const [state, formAction, pending] = useActionState(action, emptyState);
   return (
-    <form action={formAction} className={styles.availability}>
+    <EditableForm action={formAction} className={styles.availability}>
       <input type="hidden" name="propertyId" value={property.id} />
       <label>Estado<select name="status" defaultValue={property.status}>{statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <button className={styles.secondaryButton} type="submit" disabled={pending}>{pending ? 'Actualizando…' : 'Actualizar'}</button>
       <Feedback state={state} />
-    </form>
+    </EditableForm>
   );
 }
 
@@ -104,13 +106,14 @@ export function PropertyManager({
   agencySlug: string;
   properties: AgencyPropertyRecord[];
 }) {
+  const canEdit = useWorkspaceEditPermission();
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingProperty = properties.find((property) => property.id === editingId);
 
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <div><p className={styles.eyebrow}>Catálogo de la inmobiliaria</p><h1>Propiedades</h1><p>Las fichas se guardan en la base de datos y solo son visibles desde esta inmobiliaria.</p></div>
+        <div><p className={styles.eyebrow}>Catálogo de la inmobiliaria</p><h1>Propiedades</h1><p>Las fichas se guardan en la base de datos. Los borradores no se publican en el catálogo.</p></div>
         <span className={styles.count}>{properties.length} {properties.length === 1 ? 'propiedad' : 'propiedades'}</span>
       </header>
       <div className={styles.notice} role="note">
@@ -137,7 +140,7 @@ export function PropertyManager({
                 {property.description && <p className={styles.description}>{property.description}</p>}
                 {property.features.length > 0 && <p className={styles.features}>Características: {property.features.join(', ')}</p>}
                 <div className={styles.cardActions}>
-                  <button className={styles.secondaryButton} type="button" onClick={() => setEditingId(property.id)}>Editar ficha</button>
+                  {canEdit && <button className={styles.secondaryButton} type="button" onClick={() => setEditingId(property.id)}>Editar ficha</button>}
                   <AvailabilityForm key={`${property.id}-${property.status}`} agencySlug={agencySlug} property={property} />
                 </div>
               </article>

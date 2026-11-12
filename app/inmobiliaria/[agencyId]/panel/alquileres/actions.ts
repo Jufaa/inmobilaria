@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAgencyFinanceAccess } from '@/lib/agency-access';
+import { requireAgencyPlatformEditAccess } from '@/lib/agency-access';
 import {
   applyRentAdjustment, createPropertyExpense, createRentCharge, createRentalContact, createRentalContract,
   createRentPayment, markExpensePaid, rentalContactKinds, rentalContractStatuses, rentalCurrencies,
@@ -16,7 +16,7 @@ const validDate = (date: string) => /^\d{4}-\d{2}-\d{2}$/.test(date)
 const validMoney = (amount: string) => /^\d{1,12}(?:\.\d{1,2})?$/.test(amount) && Number(amount) > 0;
 
 async function context(slug: string) {
-  return requireAgencyFinanceAccess(slug);
+  return requireAgencyPlatformEditAccess(slug);
 }
 
 function refresh(slug: string) {

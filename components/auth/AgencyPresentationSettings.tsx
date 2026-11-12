@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { EditableForm } from './WorkspaceEditPermission';
+import { ExamplePropertyFields } from './ExamplePropertyFields';
+import type { AgencyPropertyRecord } from '@/lib/properties/agency-property-service';
+
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   defaultPresentationSettings,
   presentationUpdatedEvent,
@@ -10,6 +14,11 @@ import {
   type PresentationSettings,
 } from '@/lib/agency-presentation';
 import styles from './agency-presentation-settings.module.css';
+import { PresentationExplorerSettings } from './PresentationExplorerSettings';
+import { PanelColorPicker } from './PanelColorPicker';
+import type { DemoConfig } from '@/lib/property-tour-config';
+import { PresentationPanelTabs, presentationSections, type PresentationSection } from './PersonalizationPanels';
+import panelStyles from './personalization-panels.module.css';
 
 const zoneIds = ['centro', 'banda-norte'] as const;
 const zoneNames: Record<(typeof zoneIds)[number], string> = { centro: 'Centro', 'banda-norte': 'Banda Norte' };
@@ -25,8 +34,13 @@ function Field({ label, children, hint }: { label: string; children: React.React
   </label>;
 }
 
-export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings, onPersist }: {
+export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings, onPersist, config, section, hideNavigation = false, propertyEditor, realProperties }: {
   agencyId: string;
+  config?: DemoConfig;
+  section?: PresentationSection;
+  hideNavigation?: boolean;
+  propertyEditor?: ReactNode;
+  realProperties?: AgencyPropertyRecord[];
   onSaved?: (settings: PresentationSettings) => void;
   initialSettings?: PresentationSettings;
   onPersist?: (value: unknown) => Promise<{ settings: PresentationSettings | null; error: string | null }>;
@@ -34,6 +48,9 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
   const [settings, setSettings] = useState<PresentationSettings>(() => copy(initialSettings ?? defaultPresentationSettings));
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState('');
+  const [localSection, setLocalSection] = useState<PresentationSection>('map');
+  const selectedSection = section ?? localSection;
+  const panelId = `agency-presentation-${encodeURIComponent(agencyId)}`;
   const loaded = useRef<PresentationSettings>(copy(defaultPresentationSettings));
   const revision = useRef(0);
   const loadEpoch = useRef(0);
@@ -172,23 +189,37 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
     revision.current++;
   }
 
-  return <section className={styles.editor} aria-labelledby="agency-presentation-title">
+  return <section className={styles.editor} aria-labelledby={`${panelId}-title`}>
     <header className={styles.header}>
       <div>
         <p className={styles.eyebrow}>Configuración de la presentación</p>
-        <h2 id="agency-presentation-title">Personalice el plano de la inmobiliaria</h2>
-    <p>{onPersist ? 'Estos ajustes se guardan para esta inmobiliaria y se cargan en otros dispositivos.' : 'Estos ajustes se aplican únicamente a esta inmobiliaria en este navegador.'} No modifican la identidad visual, las propiedades, las cuentas ni las plantillas compartidas.</p>
+        <h2 id={`${panelId}-title`}>{selectedSection === 'map' ? 'Editar mapa' : selectedSection === 'properties' ? 'Personalizar inmuebles' : 'Apariencia y filtros'}</h2>
+        <p>{selectedSection === 'map' ? 'Seleccione una zona o una chincheta para editarla.' : selectedSection === 'properties' ? realProperties ? 'Administre sus propiedades desde el mapa y elija cuáles mostrar.' : 'Configure las propiedades de ejemplo sin modificar el catálogo real.' : 'Elija los colores, la información y los filtros que verá el visitante.'} Guarde los cambios al terminar.</p>
       </div>
     </header>
-    <div className={styles.notice}>
+    {!hideNavigation && <PresentationPanelTabs id={panelId} sections={presentationSections} value={selectedSection} onChange={setLocalSection} />}
+    {!realProperties && <details className={styles.notice}><summary>Acerca de la presentación de ejemplo</summary>
       <strong>Demostración local para clientes</strong>
       <p>Las propiedades de demostración y los videos de muestra son ficticios. Los planos y videos deben prepararse externamente; la generación con IA también es externa y no está integrada en este editor.</p>
-      <p>El plano se vincula con límites geográficos. Ajuste esos límites a la imagen y mantenga cada punto en su latitud y longitud reales.</p>
-    </div>
-    <form className={styles.form} onSubmit={save}>
+      <p>{onPersist ? 'Los ajustes se guardan para esta inmobiliaria.' : 'Los ajustes se guardan en este navegador.'} Los cambios de una sección se conservan al abrir otra.</p>
+    </details>}
+    <EditableForm className={styles.form} onSubmit={save}>
       {error ? <p className={styles.messageError} role="alert">{error}</p> : null}
       {status ? <p className={styles.messageStatus} role="status">{status}</p> : null}
-
+      <fieldset className={panelStyles.panel} id={`${panelId}-panel-map`} role={hideNavigation ? undefined : 'tabpanel'} aria-labelledby={hideNavigation ? undefined : `${panelId}-tab-map`} disabled={selectedSection !== 'map'} hidden={selectedSection !== 'map'}>
+        <Field label="Cargar imagen del plano" hint="PNG, JPEG o WebP; máximo 2 MB.">
+          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadArtwork} />
+        </Field>
+        {realProperties && <fieldset className={styles.group}><legend>Video de entrada</legend>
+          <label className={styles.toggle}><input type="checkbox" checked={settings.intro.enabled} onChange={event=>update(current=>({...current,intro:{...current.intro,enabled:event.target.checked}}))}/> Reproducir la presentación al entrar</label>
+          <Field label="Presentación"><select value={settings.intro.videoUrl} onChange={event=>update(current=>({...current,intro:{...current.intro,videoUrl:event.target.value}}))}>
+            <option value="/demo-assets/tours/agency-fictional-intro.mp4">Recorrido imaginario · video ficticio</option>
+            {settings.intro.videoUrl!=='/demo-assets/tours/agency-fictional-intro.mp4'&&<option value={settings.intro.videoUrl}>Video configurado</option>}
+          </select></Field>
+        </fieldset>}
+        <PresentationExplorerSettings realProperties={realProperties} key={agencyId} mode="map" settings={settings} config={config} onPointsChange={points => update(current => ({ ...current, points }))} onChange={explorer => update(current => ({ ...current, explorer }))} />
+        {!realProperties && <details className={styles.advanced}><summary>Avanzado</summary>
+      <details><summary>Video de entrada</summary>
       <fieldset className={styles.group}>
         <legend>Video institucional</legend>
         <label className={styles.toggle}><input type="checkbox" checked={settings.intro.enabled} onChange={event => update(current => ({ ...current, intro: { ...current.intro, enabled: event.target.checked } }))} /> Activar video de presentación</label>
@@ -197,6 +228,8 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
         </Field>
       </fieldset>
 
+      </details>
+      <details><summary>Imagen base y colores del mapa</summary>
       <fieldset className={styles.group}>
         <legend>Aspecto del plano</legend>
         <Field label="Modo de presentación del plano">
@@ -207,14 +240,6 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
         <Field label="URL de la imagen o ruta local" hint={`Admite imágenes HTTPS y rutas locales /demo-assets o /maps. Las imágenes cargadas se guardan ${onPersist ? 'para esta inmobiliaria' : 'en este navegador'}.`}>
           <input type="text" value={settings.map.artworkUrl} onChange={event => updateMap('artworkUrl', event.target.value)} placeholder="/maps/agency-plan.png" />
         </Field>
-        <Field label="Cargar imagen del plano" hint="PNG, JPEG o WebP; máximo 2 MB.">
-          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadArtwork} />
-        </Field>
-        <div className={styles.colorGrid}>
-          {([
-            ['Color de acento', 'accentColor'], ['Color del terreno', 'landColor'], ['Color de las construcciones', 'buildingColor'], ['Color del agua', 'waterColor'],
-          ] as const).map(([label, key]) => <Field key={key} label={label}><input aria-label={label} type="color" value={settings.map[key]} onChange={event => updateMap(key, event.target.value)} /></Field>)}
-        </div>
         <div className={styles.coordinateGrid}>
           {([
             ['Longitud oeste', 'west'], ['Longitud este', 'east'], ['Latitud sur', 'south'], ['Latitud norte', 'north'],
@@ -222,6 +247,8 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
         </div>
       </fieldset>
 
+      </details>
+      <details><summary>Puntos de referencia</summary>
       <fieldset className={styles.group}>
         <legend>Puntos de interés <span className={styles.count}>({settings.points.length}/50)</span></legend>
         {settings.points.map((point, index) => <div className={styles.point} key={point.id}>
@@ -237,6 +264,8 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
         <button className={styles.secondaryButton} type="button" onClick={addPoint} disabled={settings.points.length >= 50}>Agregar punto de interés</button>
       </fieldset>
 
+      </details>
+      <details><summary>Videos de zonas de las plantillas</summary>
       <fieldset className={styles.group}>
         <legend>Videos de transición por zona</legend>
         {zoneIds.map(id => <div className={styles.mediaRow} key={id}>
@@ -246,6 +275,13 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
         </div>)}
       </fieldset>
 
+      </details>
+        </details>}
+      </fieldset>
+      <fieldset className={panelStyles.panel} id={`${panelId}-panel-properties`} role={hideNavigation ? undefined : 'tabpanel'} aria-labelledby={hideNavigation ? undefined : `${panelId}-tab-properties`} disabled={selectedSection !== 'properties'} hidden={selectedSection !== 'properties'}>
+        <PresentationExplorerSettings realProperties={realProperties} mode="properties" settings={settings} config={config} onChange={explorer => update(current => ({ ...current, explorer }))} />
+      {realProperties&&config&&<ExamplePropertyFields settings={settings} config={config} onChange={explorer=>update(current=>({...current,explorer}))}/>}
+      {!realProperties && <details><summary>Videos de las propiedades de ejemplo</summary>
       <fieldset className={styles.group}>
         <legend>Videos de vuelo de dron por propiedad</legend>
         <p>El vuelo de dron se reproduce siempre antes de entrar. Puedes reemplazar el video para cada propiedad.</p>
@@ -255,10 +291,27 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
         </div>)}
       </fieldset>
 
-      <div className={styles.actions}>
+      </details>}
+      </fieldset>
+      <fieldset className={panelStyles.panel} id={`${panelId}-panel-appearance`} role={hideNavigation ? undefined : 'tabpanel'} aria-labelledby={hideNavigation ? undefined : `${panelId}-tab-appearance`} disabled={selectedSection !== 'appearance'} hidden={selectedSection !== 'appearance'}>
+        <PresentationExplorerSettings realProperties={realProperties} mode="appearance" settings={settings} config={config} onChange={explorer => update(current => ({ ...current, explorer }))} />
+        <fieldset className={styles.group}><legend>Colores del mapa</legend>
+        <div className={styles.paletteGrid}>
+          {([
+            ['Color de acento', 'accentColor'], ['Color del terreno', 'landColor'], ['Color de las construcciones', 'buildingColor'], ['Color del agua', 'waterColor'],
+          ] as const).map(([label, key]) => <PanelColorPicker key={key} label={label} value={settings.map[key]} onChange={value => updateMap(key, value)} />)}
+        </div>
+        </fieldset>
+      </fieldset>
+      <details><summary>Descartar cambios sin guardar</summary>
         <button className={styles.secondaryButton} type="button" onClick={resetDraft}>Restablecer borrador</button>
-        <button className={styles.primaryButton} type="submit">Guardar ajustes</button>
+      </details>
+      <div className={styles.actions}>
+        <button className={styles.primaryButton} type="submit">Guardar cambios</button>
       </div>
-    </form>
+    </EditableForm>
+    {propertyEditor && <section aria-label="Contenido de los inmuebles" hidden={selectedSection !== 'properties'}>
+      {propertyEditor}
+    </section>}
   </section>;
 }

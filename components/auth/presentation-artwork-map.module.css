@@ -73,6 +73,7 @@
   outline: 3px solid #fff;
   outline-offset: 2px;
 }
+.zone:hover, .zone:focus-visible { filter: brightness(1.15); box-shadow: 0 0 0 3px white; z-index: 3; }
 
 .point {
   position: absolute;

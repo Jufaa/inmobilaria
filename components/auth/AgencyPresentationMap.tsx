@@ -16,14 +16,18 @@ import { PresentationArtworkMap } from './PresentationArtworkMap';
 import { WorkspaceAerialExperience } from './WorkspaceAerialExperience';
 import experienceStyles from '../aerial-experience.module.css';
 import styles from './agency-presentation-map.module.css';
+import { defaultExplorerSettings, presentationZones, enabledPresentationFilters, type PresentationFilters as Filters } from '@/lib/presentation-explorer';
+import { visiblePresentationArea } from '@/lib/presentation-listings';
+import { PresentationFilters } from './PresentationFilters';
+import type { CSSProperties } from 'react';
 
 const CityMap = dynamic(() => import('../CityMap'), {
   ssr: false,
   loading: () => <div className={styles.loading} role="status">Cargando el mapa 3D…</div>,
 });
 
-export function AgencyPresentationMap({ title, properties, zones, points, agencyId = 'local-presentation', agencySlug = agencyId, agencyName = 'Tu inmobiliaria', initialSettings, initialDemoConfig, persistSettings, persistDemoConfig, sharedCatalogue = false }: {
-  sharedCatalogue?: boolean;
+export function AgencyPresentationMap({ title, properties, zones, points, agencyId = 'local-presentation', agencySlug = agencyId, agencyName = 'Tu inmobiliaria', initialSettings, initialDemoConfig, persistSettings, persistDemoConfig, sharedCatalogue = false, canEdit = false }: {
+  sharedCatalogue?: boolean; canEdit?: boolean;
   agencyId?: string;
   agencySlug?: string;
   agencyName?: string;
@@ -36,6 +40,8 @@ export function AgencyPresentationMap({ title, properties, zones, points, agency
   persistSettings?: (value: unknown) => Promise<{ settings: PresentationSettings | null; error: string | null }>;
   persistDemoConfig?: (value: unknown) => Promise<{ config: DemoConfig | null; error: string | null }>;
 }) {
+  const clean = !sharedCatalogue;
+  const [filters, setFilters] = useState<Filters>({});
   const [config, setConfig] = useState(initialDemoConfig ?? defaultDemoConfig);
   const [persistedConfig, setPersistedConfig] = useState(initialDemoConfig);
   const [zoneRevision, setZoneRevision] = useState(1);
@@ -66,7 +72,15 @@ export function AgencyPresentationMap({ title, properties, zones, points, agency
     setSelectedSharedId(id);
     setSharedFocusRevision(revision => revision + 1);
   }
-  const areas = useMemo(() => zonesForConfig(config), [config]);
+  const preferences = settings?.explorer ?? defaultExplorerSettings;
+  const effectiveFilters = enabledPresentationFilters(filters, preferences);
+  const allAreas = useMemo(() => clean ? presentationZones(preferences, zonesForConfig(config)) : zonesForConfig(config), [clean, preferences, config]);
+  const areaColors = useMemo(() => clean ? Object.fromEntries((preferences.zones ?? []).map(zone => [zone.id, zone.color])) : undefined, [clean, preferences]);
+  const areas = allAreas.filter(area => {
+    if (!clean || !Object.values(effectiveFilters).some(Boolean) || Object.entries(effectiveFilters).every(([key, value]) => key === 'currency' || !value)) return true;
+    const { west, east, south, north } = area.bounds;
+    return !!visiblePresentationArea({ id: area.id, name: area.label, geometry: { type: 'Polygon', coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] } }, config, preferences, effectiveFilters)?.properties.length;
+  });
 
   const appearance = settings?.map ?? defaultPresentationSettings.map;
   const mapPoints = useMemo<PresentationPoint[]>(() => [
@@ -77,7 +91,7 @@ export function AgencyPresentationMap({ title, properties, zones, points, agency
       latitude: property.latitude, longitude: property.longitude, color: appearance.accentColor,
     })) : []),
   ], [points, settings, appearance.accentColor, appearance.mode, sharedMapProperties]);
-  const showingIntro = !!settings && !!settings.intro.videoUrl && !introDismissed;
+  const showingIntro = !!settings && settings.intro.enabled && !!settings.intro.videoUrl && !introDismissed;
   const blocked = !!activeZone || !!transition || editorOpen || showingIntro;
 
   useEffect(() => {
@@ -94,7 +108,7 @@ export function AgencyPresentationMap({ title, properties, zones, points, agency
         } else if (!loaded.settings.intro.enabled || !loaded.settings.intro.videoUrl) {
           setIntroDismissed(true); setMapEntered(true);
         }
-      } catch { setSettings(defaultPresentationSettings); setNotice('No se pueden leer los ajustes locales. Puedes omitir los videos para continuar.'); }
+      } catch { setSettings(defaultPresentationSettings); setIntroDismissed(true); setMapEntered(true); setNotice('No se pueden leer los ajustes locales. Puedes omitir los videos para continuar.'); }
     }
     load(true);
     const onStorage = (event: StorageEvent) => { if (!event.key || event.key === presentationStorageKey(agencyId)) load(); };
@@ -139,7 +153,8 @@ export function AgencyPresentationMap({ title, properties, zones, points, agency
       [[west, south], [east, south], [east, north], [west, north], [west, south]],
     ] } };
     const token = ++transitionToken.current;
-    const clip = settings?.zones[id];
+    const custom = clean ? preferences.zones?.find(item => item.id === id) : undefined;
+    const clip = custom ? { transitionEnabled: !!custom.videoUrl, videoUrl: custom.videoUrl } : settings?.zones[id];
     if (clip?.transitionEnabled && clip.videoUrl) setTransition({ zone, token, src: clip.videoUrl });
     else { setTransition(null); setActiveZone(zone); }
   }
@@ -171,23 +186,24 @@ export function AgencyPresentationMap({ title, properties, zones, points, agency
     } catch { return 'No se pudo guardar la presentación. No se aplicaron los cambios.'; }
   }
 
-  return <section className={`${styles.presentation} ${experienceStyles.experience}`} aria-label={title}>
+  return <section className={`${styles.presentation} ${experienceStyles.experience} ${clean ? styles.clean : ''}`} style={clean ? { '--popup-bg': preferences.popupColor, '--popup-text': preferences.popupTextColor } as CSSProperties : undefined} aria-label={title}>
     {mapEntered && <div className={styles.scene}>
-      {appearance.mode === 'artwork' ? <PresentationArtworkMap appearance={appearance} areas={areas} pointsOfInterest={mapPoints} onAreaSelect={openZone} /> : <CityMap properties={mapProperties} selected={selectedSharedMarker?.id ?? null}
+      {appearance.mode === 'artwork' ? <PresentationArtworkMap appearance={appearance} areas={areas} areaColors={areaColors} compact={clean} showLegend={preferences.showLegend} pointsOfInterest={mapPoints} onAreaSelect={openZone} /> : <CityMap areaColors={areaColors} compact={clean} properties={clean ? [] : mapProperties} selected={selectedSharedMarker?.id ?? null}
         onSelect={id => { if (sharedCatalogue && id < 0) { const property = properties[-id - 1]; if (property) selectShared(property.id); return; } setSelectedSharedId(null); const zoneId = tourIdForMapProperty(id); if (zoneId) openZone(zoneId); }}
         onAreaSelect={openZone} visible={!blocked} overview appearance={appearance} pointsOfInterest={mapPoints}
         controlsBlocked={blocked} focusProperty={selectedSharedMarker} focusRevision={sharedFocusRevision}
         areas={areas} zoneRevision={zoneRevision} onSearchArea={() => {}} />}
     </div>}
     {!settings && <p className={styles.loading} role="status">Cargando la presentación de la inmobiliaria…</p>}
-    <header className={styles.intro}>
+    {clean && <header className={styles.toolbar}><strong>{preferences.name || agencyName}</strong><PresentationFilters value={filters} onChange={setFilters} settings={preferences} zones={allAreas} />{canEdit&&<button className={styles.edit} type="button" disabled={!canEdit} onClick={() => setEditorOpen(true)}><SlidersHorizontal size={15} /> Personalizar</button>}{settings?.intro.enabled && settings.intro.videoUrl && <button onClick={() => setIntroDismissed(false)}>Ver entrada</button>}</header>}
+    {!clean && <header className={styles.intro}>
       <span className={styles.eyebrow}>PRESENTACIÓN INTERACTIVA · RÍO CUARTO</span>
       <h1>Una nueva forma de<br /><em>explorar propiedades.</em></h1>
       <p>Elige una zona del mapa para verla desde arriba. Descubre sus propiedades y entra a recorrerlas en video.</p>
       <div className={styles.steps}><span>01 · Elige una zona</span><span>02 · Explora desde arriba</span><span>03 · Entra a la propiedad</span></div>
       {settings?.intro.videoUrl && <button className={styles.replay} onClick={() => setIntroDismissed(false)}>Ver presentación de la inmobiliaria</button>}
-      <button className={styles.edit} onClick={() => setEditorOpen(true)}><SlidersHorizontal size={15} /> Personalizar presentación</button>
-    </header>
+      <button className={styles.edit} disabled={!canEdit} onClick={() => setEditorOpen(true)}><SlidersHorizontal size={15} /> Personalizar presentación</button>
+    </header>}
     {sharedCatalogue && !blocked && <aside className={styles.sharedCatalogue} aria-label="Propiedades reales compartidas">
       <details open>
         <summary>Propiedades reales compartidas ({properties.length})</summary>
@@ -210,23 +226,25 @@ export function AgencyPresentationMap({ title, properties, zones, points, agency
       </details>
     </aside>}
     <nav className={styles.zones} aria-label="Zonas de la presentación">
-      <div className={styles.zoneHeading}><MapPinned size={18} /><span>¿Dónde quieres explorar?<small>Selecciona un cuadrado en el mapa o una zona aquí.</small></span></div>
+      <div hidden={clean} className={styles.zoneHeading}><MapPinned size={18} /><span>¿Dónde quieres explorar?<small>Selecciona un cuadrado en el mapa o una zona aquí.</small></span></div>
       <div className={styles.zoneButtons}>{areas.map((area, index) => <button key={area.id} onClick={() => openZone(area.id)}>
-        <span className={styles.number}>0{index + 1}</span><span><strong>{area.label}</strong><small>6 propiedades de ejemplo · Vista aérea</small></span><ArrowUpRight size={20} />
+        <span hidden={clean} className={styles.number}>0{index + 1}</span><span><strong>{area.label}</strong>{!clean && <small>6 propiedades de ejemplo · Vista aérea</small>}</span><ArrowUpRight size={20} />
       </button>)}</div>
-      <p className={styles.disclaimer}>{sharedCatalogue ? 'Las zonas y los recorridos ficticios son ejemplos; no representan las propiedades reales compartidas del catálogo.' : 'Propiedades ficticias y zonas ilustrativas. Los videos de muestra no representan los inmuebles del mapa.'} {persistSettings ? 'La personalización se guarda para esta inmobiliaria.' : 'La personalización se guarda localmente.'} Los registros reales no se modifican.</p>
+      {!clean && <p className={styles.disclaimer}>{sharedCatalogue ? 'Las zonas y los recorridos ficticios son ejemplos; no representan las propiedades reales compartidas del catálogo.' : 'Propiedades ficticias y zonas ilustrativas. Los videos de muestra no representan los inmuebles del mapa.'} {persistSettings ? 'La personalización se guarda para esta inmobiliaria.' : 'La personalización se guarda localmente.'} Los registros reales no se modifican.</p>}
+      {clean && areas.length === 0 && <p role="status">No hay zonas con resultados. Revise los filtros o active una zona en Personalizar.</p>}
     </nav>
+    {clean && <details className={styles.mapInfo}><summary>Información{preferences.showLegend ? ' y referencias' : ''}</summary>{preferences.showLegend && <ul>{allAreas.map(area => <li key={area.id}><i style={{ backgroundColor: areaColors?.[area.id] ?? appearance.accentColor }} />{area.label}</li>)}{Object.entries(preferences.kindColors).map(([kind, color]) => <li key={kind}><i style={{ backgroundColor: color }} />{kind}</li>)}</ul>}<p>Presentación ilustrativa: propiedades ficticias y zonas orientativas. Los videos de muestra no representan los inmuebles señalados.</p></details>}
     {notice && <p className={styles.notice} role="status">{notice}</p>}
     {showingIntro && <PresentationVideo key={`intro-${agencyId}-${settings.intro.videoUrl}`} src={settings.intro.videoUrl} title={`Bienvenidos a ${agencyName}`} continueLabel="Omitir y ver el mapa" onContinue={finishIntro} />}
-    {transition && <PresentationVideo key={`zone-${transition.token}`} src={transition.src} title={`De Río Cuarto a ${transition.zone.name}`} continueLabel="Omitir y explorar la zona" onContinue={() => finishTransition(transition)} onBack={() => { transitionToken.current++; setTransition(null); }} />}
-    {activeZone && <WorkspaceAerialExperience zone={activeZone} settings={settings ?? undefined} pointsOfInterest={mapPoints}
+    {transition && <PresentationVideo key={`zone-${transition.token}`} src={transition.src} integrated={clean} maxSeconds={clean ? preferences.zones?.find(zone => zone.id === transition.zone.id)?.duration ?? 4 : undefined} title={`De Río Cuarto a ${transition.zone.name}`} continueLabel="Omitir y explorar la zona" onContinue={() => finishTransition(transition)} onBack={() => { transitionToken.current++; setTransition(null); }} />}
+    {activeZone && <WorkspaceAerialExperience canEdit={canEdit} clean={clean} filters={effectiveFilters} onFiltersChange={setFilters} filterZones={allAreas} zone={activeZone} settings={settings ?? undefined} pointsOfInterest={mapPoints}
       initialConfig={persistedConfig ?? (persistDemoConfig ? config : undefined)} persistDemoConfig={persistDemoConfig}
       onConfigSaved={saved => { setPersistedConfig(saved); acceptConfig(saved); }}
       onClose={() => { setActiveZone(null); reloadConfig(); }} />}
     <dialog ref={editor} className={experienceStyles.editorDialog} aria-label="Personalizar la presentación"
       onCancel={event => { event.preventDefault(); closeEditor(); }} onClose={() => setEditorOpen(false)}>
-      {editorOpen && <><button className={styles.closeSettings} onClick={closeEditor}>Cerrar personalización</button><AgencyPresentationSettings agencyId={agencyId} initialSettings={settings ?? initialSettings} onPersist={persistSettings} onSaved={setSettings} /><details className={styles.templates}><summary>Editar las plantillas de propiedades de ejemplo</summary><TourDemoEditor config={config} onSave={applyConfig} onClose={closeEditor} persisted={!!persistDemoConfig} /></details></>}
+      {canEdit && editorOpen && <><button className={styles.closeSettings} onClick={closeEditor}>Cerrar personalización</button><AgencyPresentationSettings config={config} agencyId={agencyId} initialSettings={settings ?? initialSettings} onPersist={persistSettings} onSaved={setSettings} propertyEditor={<details className={styles.templates}><summary>Editar las plantillas de propiedades de ejemplo</summary><TourDemoEditor config={config} onSave={applyConfig} onClose={closeEditor} persisted={!!persistDemoConfig} /></details>} /></>}
     </dialog>
-    <span className={styles.catalogue}>Catálogo real sin cambios: {properties.length} propiedades · {zones.length} barrios · {points.length} puntos de interés</span>
+    {!clean && <span className={styles.catalogue}>Catálogo real sin cambios: {properties.length} propiedades · {zones.length} barrios · {points.length} puntos de interés</span>}
   </section>;
 }

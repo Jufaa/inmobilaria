@@ -6,7 +6,7 @@ import { Prisma } from '@/generated/prisma/client';
 
 export default async function RentalsPage({ params }: { params: Promise<{ agencyId: string }> }) {
   const { agencyId } = await params;
-  const { user, membership } = await requireAgencyFinanceAccess(agencyId);
+  const { user, membership, canEdit } = await requireAgencyFinanceAccess(agencyId);
   const data = await listRentalDashboard(membership.agency.id);
   const charges = data.charges.map((charge) => {
     const paidAmount = charge.payments.reduce((total, payment) => total.add(payment.amount), new Prisma.Decimal(0));
@@ -27,7 +27,9 @@ export default async function RentalsPage({ params }: { params: Promise<{ agency
   }).filter((charge) => Number(charge.balance) > 0);
 
   return <WorkspaceShell
+      canEdit={canEdit}
     agencyName={membership.agency.name}
+      brandPrimaryColor={membership.agency.brandPrimaryColor}
     agencySlug={agencyId}
     email={user.email}
     activeSection="rentals"

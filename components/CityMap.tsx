@@ -15,8 +15,12 @@ import mapboxgl from 'mapbox-gl';
 import type { Property } from '@/lib/properties';
 import type { MapBounds, Zone } from '@/lib/zones';
 import type { PresentationMapStyle, PresentationPoint } from '@/lib/agency-presentation';
+import { bindRectangleSelection } from '@/lib/map-rectangle-selection';
 
-type MapProperty = Pick<Property, 'id' | 'latitude' | 'longitude' | 'price' | 'currency' | 'address'>;
+type MapProperty = Pick<Property, 'id' | 'latitude' | 'longitude' | 'price' | 'currency' | 'address'> & {
+  showPrice?: boolean;
+  markerColor?: string;
+};
 
 type Props = {
   controlsBlocked?: boolean;
@@ -32,6 +36,13 @@ type Props = {
   onSearchArea: (bounds: MapBounds) => void;
   overview?: boolean;
   appearance?: PresentationMapStyle;
+  areaColors?: Record<string, string>;
+  compact?: boolean;
+  onMapPick?: (position: [number, number]) => void;
+  onRectangleSelect?: (bounds: MapBounds) => void;
+  onRectangleCancel?: () => void;
+  onPointSelect?: (id: string) => void;
+  editing?: boolean;
   pointsOfInterest?: PresentationPoint[];
 };
 type MapState = 'missing' | 'loading' | 'ready' | 'error' | 'unsupported';
@@ -47,6 +58,13 @@ const hasPublicToken = !!publicToken?.startsWith('pk.');
 
 export default function CityMap({
   controlsBlocked = false,
+  compact = false,
+  areaColors,
+  onMapPick,
+  onRectangleSelect,
+  onRectangleCancel,
+  onPointSelect,
+  editing = false,
   properties,
   selected,
   onSelect,
@@ -65,6 +83,8 @@ export default function CityMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markers = useRef(new Map<string, mapboxgl.Marker>());
   const pointMarkers = useRef(new Map<string, mapboxgl.Marker>());
+  const onPointSelectRef = useRef(onPointSelect);
+  onPointSelectRef.current = onPointSelect;
   const lastSourceProperties = useRef<MapProperty[] | null>(null);
   const handledFocusRevision = useRef(0);
   const handledZoneRevision = useRef(0);
@@ -87,6 +107,8 @@ export default function CityMap({
   const [flat, setFlat] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [mapGeneration, setMapGeneration] = useState(0);
+  const rectangleCleanup = useRef<(() => void) | null>(null);
+  const selectingRectangle = editing && !!onRectangleSelect;
 
   useEffect(() => {
     if (!host.current || !hasPublicToken) return;
@@ -167,6 +189,9 @@ export default function CityMap({
     });
     observer.observe(host.current);
     return () => {
+      // Restore crop handlers while the map is still alive. Later effect cleanup is idempotent.
+      rectangleCleanup.current?.();
+      rectangleCleanup.current = null;
       observer.disconnect();
       markers.current.forEach((marker) => marker.remove());
       markers.current.clear();
@@ -175,7 +200,7 @@ export default function CityMap({
       mapRef.current = null;
       map.remove();
     };
-  }, [attempt]);
+  }, [attempt, overview]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -197,7 +222,7 @@ export default function CityMap({
       map.addSource(sourceId, {
         type: 'geojson',
         data,
-        cluster: true,
+        cluster: !overview,
         clusterRadius: 55,
         clusterMaxZoom: 15,
       });
@@ -304,14 +329,23 @@ export default function CityMap({
             `Acercar grupo de ${count} propiedades`,
           );
         } else if (property) {
-          button.textContent = `${selected === id ? '✓ ' : ''}${formatPrice(property.price, property.currency ?? 'USD')}`;
+          button.textContent = property.showPrice === false ? (selected === id ? '✓' : '●') : `${selected === id ? '✓ ' : ''}${formatPrice(property.price, property.currency ?? 'USD')}`;
           button.append(document.createElement('span'));
           button.classList.toggle('active', selected === id);
           button.setAttribute(
             'aria-label',
-            `Ver ${property.address}, ${formatPrice(property.price, property.currency ?? 'USD')}`,
+            property.showPrice === false ? `Ver ${property.address}` : `Ver ${property.address}, ${formatPrice(property.price, property.currency ?? 'USD')}`,
           );
           button.setAttribute('aria-pressed', String(selected === id));
+          if (property.markerColor && /^#[a-f0-9]{6}$/i.test(property.markerColor)) {
+            const channels = property.markerColor.slice(1).match(/../g)!.map(value => Number.parseInt(value, 16) / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+            const luminance = channels.reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+            button.style.backgroundColor = property.markerColor;
+            button.style.color = luminance > .179 ? '#000000' : '#ffffff';
+          } else {
+            button.style.backgroundColor = '';
+            button.style.color = '';
+          }
         }
         marker.getElement().style.zIndex =
           !cluster && selected === id ? '3' : '2';
@@ -372,7 +406,7 @@ export default function CityMap({
       const bounds = area.bounds;
       return {
         type: 'Feature' as const,
-        properties: { areaId: area.id, label: `${area.label} · Área orientativa` },
+        properties: { areaId: area.id, label: compact ? area.label : `${area.label} · Área orientativa`, color: areaColors?.[area.id] ?? appearance?.accentColor ?? '#0f766e' },
         geometry: {
           type: 'Polygon' as const,
           coordinates: [
@@ -399,7 +433,7 @@ export default function CityMap({
         type: 'fill',
         source: 'search-zone',
         slot: 'middle',
-        paint: { 'fill-color': appearance?.accentColor ?? '#0f766e', 'fill-opacity': 0.045 },
+        paint: { 'fill-color': areaColors ? ['get', 'color'] : appearance?.accentColor ?? '#0f766e', 'fill-opacity': 0.045 },
       });
       map.addLayer({
         id: 'search-zone-outline',
@@ -407,7 +441,7 @@ export default function CityMap({
         source: 'search-zone',
         slot: 'middle',
         paint: {
-          'line-color': appearance?.accentColor ?? '#0f766e',
+          'line-color': areaColors ? ['get', 'color'] : appearance?.accentColor ?? '#0f766e',
           'line-width': 2,
           'line-dasharray': [3, 2],
           'line-opacity': 0.8,
@@ -424,7 +458,7 @@ export default function CityMap({
           'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
         },
         paint: {
-          'text-color': appearance?.accentColor ?? '#115e59',
+          'text-color': areaColors ? ['get', 'color'] : appearance?.accentColor ?? '#115e59',
           'text-halo-color': '#ffffff',
           'text-halo-width': 2,
         },
@@ -440,7 +474,7 @@ export default function CityMap({
       const mobile = (host.current?.clientWidth ?? 1200) < 900;
       const height = host.current?.clientHeight ?? 700;
       map.fitBounds(bounds, {
-        padding: mobile
+        padding: compact ? { top: 90, right: 40, bottom: 110, left: 40 } : mobile
           ? {
               top: Math.min(320, height * 0.4),
               right: 30,
@@ -456,7 +490,7 @@ export default function CityMap({
           : 650,
       });
     }
-  }, [areas, zoneRevision, mapGeneration, visible, state, appearance]);
+  }, [areas, zoneRevision, mapGeneration, visible, state, appearance, areaColors, compact]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -464,10 +498,10 @@ export default function CityMap({
     map.setConfigProperty('basemap', 'colorLand', appearance.landColor);
     map.setConfigProperty('basemap', 'colorBuildings', appearance.buildingColor);
     map.setConfigProperty('basemap', 'colorWater', appearance.waterColor);
-    if (map.getLayer('search-zone-fill')) map.setPaintProperty('search-zone-fill', 'fill-color', appearance.accentColor);
-    if (map.getLayer('search-zone-outline')) map.setPaintProperty('search-zone-outline', 'line-color', appearance.accentColor);
-    if (map.getLayer('search-zone-label')) map.setPaintProperty('search-zone-label', 'text-color', appearance.accentColor);
-  }, [appearance, mapGeneration, state]);
+    if (map.getLayer('search-zone-fill')) map.setPaintProperty('search-zone-fill', 'fill-color', areaColors ? ['get', 'color'] : appearance.accentColor);
+    if (map.getLayer('search-zone-outline')) map.setPaintProperty('search-zone-outline', 'line-color', areaColors ? ['get', 'color'] : appearance.accentColor);
+    if (map.getLayer('search-zone-label')) map.setPaintProperty('search-zone-label', 'text-color', areaColors ? ['get', 'color'] : appearance.accentColor);
+  }, [appearance, areaColors, mapGeneration, state]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -481,6 +515,12 @@ export default function CityMap({
         const element = document.createElement('div');
         element.className = 'presentation-map-poi';
         element.setAttribute('role', 'img');
+        element.addEventListener('click', event => {
+          if (onPointSelectRef.current) { event.stopPropagation(); onPointSelectRef.current(point.id); }
+        });
+        element.addEventListener('keydown', event => {
+          if (onPointSelectRef.current && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onPointSelectRef.current(point.id); }
+        });
         marker = new mapboxgl.Marker({ element, anchor: 'bottom' })
           .setLngLat([point.longitude, point.latitude])
           .addTo(map);
@@ -490,6 +530,9 @@ export default function CityMap({
       const element = marker.getElement();
       element.textContent = point.name;
       element.setAttribute('aria-label', `Punto de interés: ${point.name}`);
+      element.setAttribute('role', onPointSelect ? 'button' : 'img');
+      if (onPointSelect) element.setAttribute('tabindex', '0');
+      else element.removeAttribute?.('tabindex');
       element.style.backgroundColor = point.color;
       element.style.color = '#ffffff';
       element.style.padding = '4px 8px';
@@ -505,16 +548,18 @@ export default function CityMap({
         pointMarkers.current.delete(id);
       }
     });
-  }, [pointsOfInterest, mapGeneration, state]);
+  }, [pointsOfInterest, mapGeneration, state, onPointSelect]);
+
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || state !== 'ready' || !visible || !onAreaSelect) return;
+    if (!map || state !== 'ready' || !visible || !onAreaSelect || onMapPick || selectingRectangle) return;
+    const canvas = map.getCanvas();
     let focusingArea = false;
     let focusTimer: ReturnType<typeof setTimeout> | undefined;
     let focusedAreaId: string | null = null;
     const finishAreaFocus = () => {
-      if (!focusedAreaId) return;
+      if (!focusedAreaId || mapRef.current !== map) return;
       const id = focusedAreaId;
       focusedAreaId = null;
       focusingArea = false;
@@ -528,6 +573,7 @@ export default function CityMap({
       if (typeof id !== 'string') return;
       const area = areas.find(item => item.id === id);
       if (!area) return;
+      if (editing) { onAreaSelect(id); return; }
       const bounds = new mapboxgl.LngLatBounds();
       bounds.extend([area.bounds.west, area.bounds.south]);
       bounds.extend([area.bounds.east, area.bounds.north]);
@@ -550,8 +596,19 @@ export default function CityMap({
         finishAreaFocus();
       }
     };
-    const enter = () => { map.getCanvas().style.cursor = 'pointer'; };
-    const leave = () => { map.getCanvas().style.cursor = ''; };
+    const enter = (event: mapboxgl.MapMouseEvent & { features?: mapboxgl.MapboxGeoJSONFeature[] }) => {
+      if (mapRef.current !== map) return;
+      canvas.style.cursor = 'pointer';
+      const id = event.features?.[0]?.toJSON().properties?.areaId;
+      if (compact && typeof id === 'string') map.setPaintProperty('search-zone-fill', 'fill-opacity', ['case', ['==', ['get', 'areaId'], id], 0.25, 0.045]);
+    };
+    const leave = () => {
+      canvas.style.cursor = '';
+      // Map disposal runs before later effect cleanups during route navigation.
+      if (mapRef.current === map && compact && map.getLayer('search-zone-fill')) {
+        map.setPaintProperty('search-zone-fill', 'fill-opacity', 0.045);
+      }
+    };
     map.on('click', 'search-zone-fill', click);
     map.on('mouseenter', 'search-zone-fill', enter);
     map.on('mouseleave', 'search-zone-fill', leave);
@@ -561,9 +618,55 @@ export default function CityMap({
       map.off('mouseleave', 'search-zone-fill', leave);
       map.off('moveend', finishAreaFocus);
       if (focusTimer) clearTimeout(focusTimer);
+      focusedAreaId = null;
       leave();
     };
-  }, [state, visible, onAreaSelect, mapGeneration, areas]);
+  }, [state, visible, onAreaSelect, mapGeneration, areas, compact, onMapPick, editing, selectingRectangle]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state !== 'ready' || !onMapPick || selectingRectangle) return;
+    const canvas = map.getCanvas();
+    const pick = (event: mapboxgl.MapMouseEvent) => {
+      if (mapRef.current === map) onMapPick([event.lngLat.lng, event.lngLat.lat]);
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.target !== canvas || event.key !== 'Enter' || mapRef.current !== map) return;
+      event.preventDefault();
+      const center = map.getCenter();
+      onMapPick([center.lng, center.lat]);
+    };
+    canvas.style.cursor = 'crosshair';
+    map.on('click', pick);
+    canvas.addEventListener('keydown', key);
+    return () => { map.off('click', pick); canvas.removeEventListener('keydown', key); canvas.style.cursor = ''; };
+  }, [state, mapGeneration, onMapPick, selectingRectangle]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state !== 'ready' || !visible || !selectingRectangle || !onRectangleSelect) return;
+    const canvas = map.getCanvas();
+    let disposed = false;
+    const release = bindRectangleSelection({
+      canvas,
+      container: canvas.parentElement,
+      interactions: [map.dragPan, map.boxZoom, map.dragRotate, map.scrollZoom, map.doubleClickZoom, map.keyboard, map.touchZoomRotate, map.touchPitch],
+      isActive: () => !disposed && mapRef.current === map,
+      unproject: point => map.unproject(point),
+      onSelect: onRectangleSelect,
+      onCancel: onRectangleCancel,
+      color: appearance?.accentColor,
+    });
+    const removed = () => { disposed = true; release(); };
+    map.on('remove', removed);
+    const cleanup = () => {
+      release();
+      map.off('remove', removed);
+      if (rectangleCleanup.current === cleanup) rectangleCleanup.current = null;
+    };
+    rectangleCleanup.current = cleanup;
+    return cleanup;
+  }, [state, visible, mapGeneration, selectingRectangle, onRectangleSelect, onRectangleCancel, appearance?.accentColor]);
 
   const searchArea = () => {
     const bounds = mapRef.current?.getBounds();
@@ -625,7 +728,7 @@ export default function CityMap({
       duration: reducedMotion() ? 0 : 350,
     });
   };
-  const available = state === 'ready';
+  const available = state === 'ready' && !selectingRectangle;
   const showFallback =
     state === 'missing' || state === 'error' || state === 'unsupported';
   return (

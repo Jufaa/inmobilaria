@@ -50,8 +50,16 @@ function harness(initialAgency = 'agency-a', storage = new Map(), eventLog = [])
   const exports = {};
   new Function('require', 'exports', code)(id => {
     if (id === 'react') return hooks;
+    if (id === './WorkspaceEditPermission') return {EditableForm:'form'};
+    if (id === './ExamplePropertyFields') return {ExamplePropertyFields:()=>null};
     if (id.endsWith('.module.css')) return { __esModule: true, default: new Proxy({}, { get: (_, key) => String(key) }) };
     if (id === '@/lib/agency-presentation') return presentationApi;
+    if (id === './PanelColorPicker') return { PanelColorPicker: ({ label, value, onChange }) => require('react/jsx-runtime').jsx('label', { children: [label, require('react/jsx-runtime').jsx('input', { type: 'color', 'aria-label': label, value, onChange: event => onChange(event.target.value) })] }) };
+    if (id === './PresentationExplorerSettings') return { PresentationExplorerSettings: () => null };
+    if (id === './PersonalizationPanels') return {
+      presentationSections: [{ id: 'map', label: 'Mapa' }, { id: 'properties', label: 'Inmuebles' }, { id: 'appearance', label: 'Apariencia' }],
+      PresentationPanelTabs: ({ sections, value, onChange }) => require('react/jsx-runtime').jsx('nav', { children: sections.map(section => require('react/jsx-runtime').jsx('button', { type: 'button', role: 'tab', 'aria-selected': value === section.id, onClick: () => onChange(section.id), children: section.label }, section.id)) }),
+    };
     return require(id);
   }, exports);
   let props = { agencyId: initialAgency };
@@ -99,7 +107,7 @@ test('agency changes reload isolated settings; successful saves notify, while re
     assert.equal(nodes(treeB, item => item.type === 'input' && item.props['aria-label'] === 'Color de acento')[0].props.value, presentationApi.defaultPresentationSettings.map.accentColor);
     nodes(treeB, item => item.type === 'input' && item.props['aria-label'] === 'Color de acento')[0].props.onChange({ target: { value: '#22aa66' } });
     const button = label => nodes(app.render(), item => item.type === 'button' && content(item) === label)[0];
-    button('Guardar ajustes').props.onClick?.();
+    button('Guardar cambios').props.onClick?.();
     const form = nodes(app.render(), item => item.type === 'form')[0];
     form.props.onSubmit({ preventDefault() {} });
     assert.equal(app.storage.get(presentationApi.presentationStorageKey('agency-b')) !== undefined, true);
@@ -152,5 +160,79 @@ test('localStorage property access failures show an alert and preserve the draft
     assert.equal(storage.size, 0);
     assert.equal(eventLog.length, 0);
     assert.equal(saved.length, 0);
+  } finally { app.unmount(); }
+});
+
+test('simple editor keeps technical sections behind a single closed advanced disclosure', () => {
+  const app = harness();
+  try {
+    const tree = app.render();
+    const advanced = nodes(tree, node => node.type === 'details' && content(node.props.children[0]) === 'Avanzado')[0];
+    assert.ok(advanced);
+    assert.ok(!advanced.props.open);
+    assert.ok(nodes(advanced, node => node.type === 'input' && node.props.type === 'number').length >= 4);
+    assert.equal(nodes(tree, node => node.type === 'button' && content(node) === 'Guardar cambios').length, 1);
+  } finally { app.unmount(); }
+});
+
+function visibleNodes(tree, predicate) {
+  if (!tree || typeof tree !== 'object') return [];
+  if (Array.isArray(tree)) return tree.flatMap(item => visibleNodes(item, predicate));
+  if (tree.props?.hidden) return [];
+  if (typeof tree.type === 'function') return visibleNodes(tree.type(tree.props), predicate);
+  return [...(predicate(tree) ? [tree] : []), ...visibleNodes(tree.props?.children, predicate)];
+}
+
+test('editor panels retain one draft and a single save action while showing only their own controls', () => {
+  const app = harness();
+  try {
+    const choose = label => nodes(app.render(), node => node.props?.role === 'tab' && content(node) === label)[0].props.onClick();
+    choose('Apariencia');
+    let tree = app.render();
+    assert.equal(visibleNodes(tree, node => node.props?.role === 'tabpanel').length, 1);
+    assert.ok(nodes(tree, node => node.props?.role === 'tabpanel' && node.props.hidden).every(node => node.props.disabled), 'hidden fields must not block native validation before shared draft validation runs');
+    assert.equal(visibleNodes(tree, node => node.type === 'input' && node.props.type === 'file').length, 0);
+    const color = visibleNodes(tree, node => node.type === 'input' && node.props['aria-label'] === 'Color de acento')[0];
+    color.props.onChange({ target: { value: '#123456' } });
+    choose('Inmuebles');
+    tree = app.render();
+    assert.equal(visibleNodes(tree, node => node.type === 'input' && node.props.type === 'file').length, 0);
+    assert.equal(visibleNodes(tree, node => node.type === 'input' && node.props.type === 'text').length, 12, 'only property drone clips are visible in the property panel');
+    choose('Mapa');
+    tree = app.render();
+    assert.equal(visibleNodes(tree, node => node.type === 'input' && node.props.type === 'file').length, 1);
+    assert.equal(nodes(tree, node => node.type === 'input' && node.props['aria-label'] === 'Color de acento')[0].props.value, '#123456');
+    assert.equal(nodes(tree, node => node.type === 'button' && content(node) === 'Guardar cambios').length, 1);
+    assert.equal(app.storage.size, 0, 'tab changes must not save');
+    nodes(tree, node => node.type === 'form')[0].props.onSubmit({ preventDefault() {} });
+    assert.equal(JSON.parse(app.storage.get(presentationApi.presentationStorageKey('agency-a'))).map.accentColor, '#123456');
+  } finally { app.unmount(); }
+});
+
+test('outer personalization navigation controls the same draft without duplicate editor navigation', () => {
+  const app = harness();
+  try {
+    let tree = app.render({ agencyId: 'agency-a', section: 'appearance', hideNavigation: true });
+    nodes(tree, node => node.type === 'input' && node.props['aria-label'] === 'Color de acento')[0].props.onChange({ target: { value: '#abcdef' } });
+    tree = app.render({ agencyId: 'agency-a', section: 'properties', hideNavigation: true });
+    assert.equal(nodes(tree, node => node.props?.role === 'tab').length, 0);
+    assert.equal(nodes(tree, node => node.type === 'input' && node.props['aria-label'] === 'Color de acento')[0].props.value, '#abcdef');
+    assert.match(content(nodes(tree, node => node.type === 'h2')[0]), /inmuebles/i);
+  } finally { app.unmount(); }
+});
+
+test('property template editor is displayed in Inmuebles outside the settings form', () => {
+  const app = harness(); let templateSaves = 0;
+  const propertyEditor = require('react/jsx-runtime').jsx('form', { 'aria-label': 'Plantillas', onSubmit: event => { event.preventDefault(); templateSaves++; }, children: require('react/jsx-runtime').jsx('button', { type: 'submit', children: 'Guardar plantillas' }) });
+  try {
+    let tree = app.render({ agencyId: 'agency-a', section: 'properties', propertyEditor });
+    const forms = nodes(tree, node => node.type === 'form');
+    assert.equal(forms.length, 2);
+    assert.ok(forms.every(form => nodes(form, node => node.type === 'form').length === 1), 'template and presentation forms cannot nest');
+    assert.equal(visibleNodes(tree, node => node.type === 'form').length, 2);
+    forms[1].props.onSubmit({ preventDefault() {} });
+    assert.equal(templateSaves, 1); assert.equal(app.storage.size, 0, 'saving a template cannot submit presentation settings');
+    tree = app.render({ agencyId: 'agency-a', section: 'appearance', propertyEditor });
+    assert.equal(visibleNodes(tree, node => node.type === 'form').length, 1, 'template editor is hidden outside Inmuebles');
   } finally { app.unmount(); }
 });

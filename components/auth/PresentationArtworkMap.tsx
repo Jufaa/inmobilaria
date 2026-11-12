@@ -10,6 +10,7 @@ type Props = {
   areas: Zone[];
   pointsOfInterest: PresentationPoint[];
   onAreaSelect: (id: string) => void;
+  areaColors?: Record<string, string>; compact?: boolean; showLegend?: boolean;
 };
 
 const visibleInBounds = (bounds: MapBounds, area: MapBounds) =>
@@ -21,7 +22,7 @@ const pointInBounds = (point: PresentationPoint, bounds: MapBounds) =>
 const x = (longitude: number, bounds: MapBounds) => (longitude - bounds.west) / (bounds.east - bounds.west) * 100;
 const y = (latitude: number, bounds: MapBounds) => (bounds.north - latitude) / (bounds.north - bounds.south) * 100;
 
-export function PresentationArtworkMap({ appearance, areas, pointsOfInterest, onAreaSelect }: Props) {
+export function PresentationArtworkMap({ appearance, areas, pointsOfInterest, onAreaSelect, areaColors, compact = false, showLegend = true }: Props) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<{ url: string; width: number; height: number } | null>(null);
   const bounds = appearance.bounds;
@@ -35,7 +36,7 @@ export function PresentationArtworkMap({ appearance, areas, pointsOfInterest, on
   const imageY = (latitude: number) => (1 - imageHeight) / 2 * 100 + y(latitude, bounds) * imageHeight;
 
   return <section className={styles.artworkMap} aria-label="Plano georreferenciado de la presentación">
-    <p className={styles.notice}>El plano se prepara externamente (incluida IA si se utilizó); esta pantalla no genera imágenes con IA. La alineación depende de que el plano coincida con estos límites geográficos; las zonas son referencias orientativas.</p>
+    {!compact && <p className={styles.notice}>El plano se prepara externamente (incluida IA si se utilizó); esta pantalla no genera imágenes con IA. La alineación depende de que el plano coincida con estos límites geográficos; las zonas son referencias orientativas.</p>}
     <div className={styles.viewport} style={{ aspectRatio }}>
       {imageAvailable ? <img className={styles.artwork} src={appearance.artworkUrl} alt="Plano personalizado de Río Cuarto" onLoad={event => setImageSize({ url: appearance.artworkUrl, width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} onError={() => setFailedUrl(appearance.artworkUrl)} /> : <div className={styles.emptyArtwork} role="status">
         <strong>{appearance.artworkUrl ? 'No se pudo cargar el plano personalizado.' : 'No hay un plano personalizado disponible.'}</strong>
@@ -51,7 +52,7 @@ export function PresentationArtworkMap({ appearance, areas, pointsOfInterest, on
           left: `${imageX(area.bounds.west)}%`, top: `${imageY(area.bounds.north)}%`,
           width: `${imageX(area.bounds.east) - imageX(area.bounds.west)}%`,
           height: `${imageY(area.bounds.south) - imageY(area.bounds.north)}%`,
-          borderColor: appearance.accentColor, backgroundColor: `${appearance.accentColor}24`,
+          borderColor: areaColors?.[area.id] ?? appearance.accentColor, backgroundColor: `${areaColors?.[area.id] ?? appearance.accentColor}24`,
         }}
       >{area.label}</button>)}
       {pointsOfInterest.filter(point => pointInBounds(point, bounds)).map(point => <span
@@ -62,10 +63,10 @@ export function PresentationArtworkMap({ appearance, areas, pointsOfInterest, on
         style={{ left: `${imageX(point.longitude)}%`, top: `${imageY(point.latitude)}%`, backgroundColor: point.color }}
       ><span>{point.name}</span></span>)}
     </div>
-    <ul className={styles.legend} aria-label="Leyenda del plano">
-      {areas.filter(area => visibleInBounds(bounds, area.bounds)).map(area => <li key={`area-${area.id}`}><span aria-hidden="true" style={{ backgroundColor: appearance.accentColor }} />{area.label}</li>)}
+    {!compact && showLegend && <ul className={styles.legend} aria-label="Leyenda del plano">
+      {areas.filter(area => visibleInBounds(bounds, area.bounds)).map(area => <li key={`area-${area.id}`}><span aria-hidden="true" style={{ backgroundColor: areaColors?.[area.id] ?? appearance.accentColor }} />{area.label}</li>)}
       {pointsOfInterest.filter(point => pointInBounds(point, bounds)).map(point => <li key={`point-${point.id}`}><span aria-hidden="true" style={{ backgroundColor: point.color }} />{point.name}</li>)}
-    </ul>
-    <small className={styles.disclosure}>Imagen de referencia del cliente; no se generan ni verifican hechos sobre edificios o propiedades a partir de IA.</small>
+    </ul>}
+    {!compact && <small className={styles.disclosure}>Imagen de referencia del cliente; no se generan ni verifican hechos sobre edificios o propiedades a partir de IA.</small>}
   </section>;
 }

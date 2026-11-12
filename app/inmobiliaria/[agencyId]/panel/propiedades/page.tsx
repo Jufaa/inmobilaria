@@ -5,12 +5,14 @@ import { listAgencyProperties } from '@/lib/properties/agency-property-service';
 
 export default async function Page({ params }: { params: Promise<{ agencyId: string }> }) {
   const { agencyId } = await params;
-  const { user, membership } = await requireAgencyDashboardAccess(agencyId);
+  const { user, membership, canEdit } = await requireAgencyDashboardAccess(agencyId);
   const properties = await listAgencyProperties(membership.agency.id);
 
   return (
     <WorkspaceShell
+      canEdit={canEdit}
       agencyName={membership.agency.name}
+      brandPrimaryColor={membership.agency.brandPrimaryColor}
       agencySlug={agencyId}
       email={user.email}
       activeSection="properties"

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAgencyCollaborationAccess } from '@/lib/agency-access';
+import { requireAgencyPlatformEditAccess } from '@/lib/agency-access';
 import { prisma } from '@/lib/prisma';
 
 export type BrandingActionState = { status: 'idle' | 'success' | 'error'; message: string };
@@ -24,7 +24,7 @@ export async function updateAgencyBranding(
   _previousState: BrandingActionState,
   formData: FormData,
 ): Promise<BrandingActionState> {
-  const { membership } = await requireAgencyCollaborationAccess(agencySlug);
+  const { membership } = await requireAgencyPlatformEditAccess(agencySlug);
   const primaryColor = String(formData.get('brandPrimaryColor') ?? '').trim();
   if (primaryColor && !/^#[0-9a-fA-F]{6}$/.test(primaryColor)) {
     return { status: 'error', message: 'Ingresá un color hexadecimal de seis dígitos, por ejemplo #236B58.' };
@@ -53,6 +53,9 @@ export async function updateAgencyBranding(
     },
   });
   revalidatePath(`/inmobiliaria/${encodeURIComponent(agencySlug)}`);
-  revalidatePath(`/inmobiliaria/${encodeURIComponent(agencySlug)}/panel/personalizacion`);
+  const panelPath = `/inmobiliaria/${encodeURIComponent(agencySlug)}/panel`;
+  for (const section of ['', '/propiedades', '/consultas', '/analiticas', '/zonas', '/colaboracion', '/alquileres', '/personalizacion']) {
+    revalidatePath(`${panelPath}${section}`);
+  }
   return { status: 'success', message: 'La identidad de tu inmobiliaria quedó actualizada.' };
 }

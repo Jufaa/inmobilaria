@@ -1,6 +1,6 @@
 .page {
   --ink: #203d37;
-  --muted: #73817a;
+  --muted: #425b50;
   --paper: #f7f7f2;
   min-height: 100dvh;
   background: var(--paper);
@@ -254,3 +254,12 @@
   .interiorVideo { object-fit: contain; background: #15251e; }
 }
 @media (prefers-reduced-motion: reduce) { .pointNumber { transition: none; } }
+
+.workspace.focusedWorkspace { grid-template-columns: minmax(0, 1fr); }
+
+.propertySummary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 20px; margin-bottom: 16px; background: #fff; color: #203d37; border: 1px solid #b6c7b9; border-radius: 12px; }
+.propertySummary > strong { font-size: 1.4rem; margin-right: auto; }
+.propertySummary > span { padding: 6px 10px; border-radius: 20px; background: #e8f0eb; color: #203d37; font-size: .9rem; }
+.propertySummary button, .back { border: 1px solid #7d9586; padding: 10px 14px; border-radius: 8px; background: #fff; color: #203d37; }
+.floorPlan .planPoint { color: #203d37; background: #fff; border: 1px solid #527059; }
+.floorPlan .activePoint { color: #fff; background: #24543e; }

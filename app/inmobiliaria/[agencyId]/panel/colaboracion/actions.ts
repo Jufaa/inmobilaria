@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAgencyCollaborationAccess } from '@/lib/agency-access';
+import { requireAgencyPlatformEditAccess } from '@/lib/agency-access';
 import {
   endAgencyConnection,
   grantPropertyShare,
@@ -19,7 +19,7 @@ function validId(id: string) {
 }
 
 async function authorize(agencySlug: string) {
-  return requireAgencyCollaborationAccess(agencySlug);
+  return requireAgencyPlatformEditAccess(agencySlug);
 }
 
 function refresh(agencySlug: string) {

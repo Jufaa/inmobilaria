@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 import * as presentationApi from '../lib/agency-presentation.ts';
+import * as explorerApi from '../lib/presentation-explorer.ts';
+import * as listingsApi from '../lib/presentation-listings.ts';
 import * as configApi from '../lib/property-tour-config.ts';
 import { tourIdForMapProperty } from '../lib/property-tour-map.ts';
 import { createPresentationArea } from '../lib/workspace-aerial-presentation.ts';
@@ -41,6 +43,9 @@ function harness(input = {}) {
     if (id === '@/lib/property-tour-config') return configApi;
     if (id === '@/lib/property-tour-map') return { tourIdForMapProperty };
     if (id === '@/lib/agency-presentation') return presentationApi;
+    if (id === '@/lib/presentation-explorer') return explorerApi;
+    if (id === '@/lib/presentation-listings') return listingsApi;
+    if (id === './PresentationFilters') return { PresentationFilters: () => null };
     if (id === './PresentationVideo') return { PresentationVideo };
     if (id === './AgencyPresentationSettings') return { AgencyPresentationSettings };
     if (id === './PresentationArtworkMap') return { PresentationArtworkMap };
@@ -48,10 +53,10 @@ function harness(input = {}) {
     if (id === '@/components/TourDemoEditor') return { TourDemoEditor };
     return require(id);
   }, exports);
-  const props = { title: 'Mapa de agencia', agencyId: 'agency-a', agencyName: 'Agencia de prueba', properties: [], zones: [], points: [], ...input };
+  const props = { canEdit:true, title: 'Mapa de agencia', agencyId: 'agency-a', agencyName: 'Agencia de prueba', properties: [], zones: [], points: [], ...input };
   const render = () => { cursor = 0; effects.length = 0; return exports.AgencyPresentationMap(props); };
   render(); for (const effect of [...effects]) effect();
-  return { render, effects, video: () => nodes(render(), n => n.type === PresentationVideo)[0], map: () => nodes(render(), n => n.type === CityMap)[0], aerial: () => nodes(render(), n => n.type === WorkspaceAerialExperience)[0], editor: () => nodes(render(), n => n.type === TourDemoEditor)[0] };
+  return { render, effects, video: () => nodes(render(), n => n.type === PresentationVideo)[0], map: () => nodes(render(), n => n.type === CityMap)[0], aerial: () => nodes(render(), n => n.type === WorkspaceAerialExperience)[0], editor: () => nodes(nodes(render(), n => n.type === AgencyPresentationSettings)[0]?.props.propertyEditor, n => n.type === TourDemoEditor)[0] };
 }
 
 const fastSettings = structuredClone(presentationApi.defaultPresentationSettings);
@@ -64,7 +69,7 @@ function withStorage(callback, settings = fastSettings) {
   try { callback(data); } finally { if (original === undefined) delete globalThis.window; else globalThis.window = original; }
 }
 
-test('the initial presentation is the 3D overview; each square, marker and direct zone shortcut opens six aerial properties before any tour', () => withStorage(() => {
+test('the clean presentation shows only zones; each square and direct shortcut opens six aerial samples', () => withStorage(() => {
   const app = harness();
   const initial = app.render();
   const map = app.map();
@@ -72,13 +77,15 @@ test('the initial presentation is the 3D overview; each square, marker and direc
   assert.equal(map.props.controlsBlocked, false);
   assert.equal(map.props.zoneRevision, 1);
   assert.equal(map.props.areas.length, 2);
+  assert.deepEqual(map.props.properties, [], 'clean overview does not expose legacy property prices or pins');
+  assert.equal(map.props.compact, true);
   assert.equal(app.aerial(), undefined);
   assert.equal(nodes(initial, n => n.type === 'video').length, 0);
   const nav = nodes(initial, n => n.props?.['aria-label'] === 'Zonas de la presentación')[0];
   const shortcuts = nodes(nav, n => n.type === 'button');
   assert.equal(shortcuts.length, 2);
   for (const [index, area] of map.props.areas.entries()) {
-    for (const open of [() => map.props.onAreaSelect(area.id), () => map.props.onSelect(map.props.properties[index].id), () => shortcuts[index].props.onClick()]) {
+    for (const open of [() => map.props.onAreaSelect(area.id), () => shortcuts[index].props.onClick()]) {
       open();
       const aerial = app.aerial();
       assert.equal(aerial.props.zone.id, area.id);

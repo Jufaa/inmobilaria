@@ -107,9 +107,10 @@ export async function listAgencyProperties(agencyId: string) {
 export async function createAgencyProperty(
   agencyId: string,
   input: AgencyPropertyInput,
+  photos: string[] = [],
 ) {
   const property = await prisma.property.create({
-    data: { ...input, agencyId },
+    data: { ...input, agencyId, ...(photos.length ? { media: { create: photos.map((url, sortOrder) => ({ kind: 'PHOTO' as const, url, sortOrder })) } } : {}) },
     include: { media: { orderBy: { sortOrder: 'asc' } } },
   });
   return toRecord(property);
@@ -142,4 +143,29 @@ export async function updateAgencyPropertyStatus(
     data: { status },
   });
   return result.count === 1;
+}
+
+// New map editing appends media without replacing existing photos or videos.
+export async function updateAgencyPropertyWithPhotos(
+  agencyId: string, propertyId: string, input: AgencyPropertyInput, photos: string[] = [],
+) {
+  return prisma.$transaction(async transaction => {
+    const existing = await transaction.property.findFirst({
+      where: { id: propertyId, agencyId },
+      include: { media: { orderBy: { sortOrder: 'asc' } } },
+    });
+    if (!existing) return null;
+    const currentPhotos = existing.media.filter(item => item.kind === 'PHOTO');
+    if (photos.length && (currentPhotos.length + photos.length > 6
+      || new Set(photos).size !== photos.length || photos.some(url => currentPhotos.some(item => item.url === url)))) {
+      throw new Error('Too many or duplicate property photos');
+    }
+    const firstOrder = existing.media.reduce((order, item) => Math.max(order, item.sortOrder + 1), 0);
+    const property = await transaction.property.update({
+      where: { id: propertyId, agencyId },
+      data: { ...input, ...(photos.length ? { media: { create: photos.map((url, index) => ({ kind: 'PHOTO' as const, url, sortOrder: firstOrder + index })) } } : {}) },
+      include: { media: { orderBy: { sortOrder: 'asc' } } },
+    });
+    return toRecord(property);
+  }, { isolationLevel: 'Serializable' });
 }

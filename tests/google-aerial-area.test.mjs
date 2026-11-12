@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ts from 'typescript';
+import * as panelColors from '../lib/panel-colors.ts';
 import { buildDemoAreas, aerialCameraForBounds } from '../lib/property-aerial-demo.ts';
 import { defaultDemoConfig } from '../lib/property-tour-config.ts';
 
@@ -17,6 +18,7 @@ let sdkLoads = 0;
 const exports = {};
 new Function('require', 'exports', compiled)((id) => {
   if (id.endsWith('.module.css')) return { __esModule: true, default: new Proxy({}, { get: (_, key) => String(key) }) };
+  if (id === '@/lib/panel-colors') return panelColors;
   if (id === '@/lib/property-aerial-demo') return { aerialCameraForBounds };
   if (id === '@/lib/google-maps-3d') return { loadGoogleMaps3D: () => { sdkLoads++; throw Error('SSR must not request Google'); } };
   return require(id);
@@ -35,4 +37,43 @@ test('the aerial zone presents six direct property options rather than a video c
     assert.ok(html.includes('Los videos de muestra se reutilizan'));
   }
   assert.equal(sdkLoads, 0);
+});
+
+test('clean aerial presentation hides ordinary prices and only highlights explicit offers', () => {
+  const area = structuredClone(buildDemoAreas(defaultDemoConfig)[0]);
+  area.properties[0].price = 'USD 111.111';
+  area.properties[1].price = 'USD 222.222';
+  area.properties[1].offer = true;
+  const props = { area, clean: true, onSelect() {}, onClose() {}, onEdit() {} };
+  const html = renderToStaticMarkup(createElement(exports.GoogleAerialArea, props));
+  assert.ok(!html.includes('USD 111.111'));
+  assert.ok(html.includes('Oferta · '));
+  assert.ok(html.includes('USD 222.222'));
+  const legacy = renderToStaticMarkup(createElement(exports.GoogleAerialArea, { ...props, clean: false }));
+  assert.ok(legacy.includes('USD 111.111'), 'legacy consumers retain their prices');
+});
+
+test('real catalogue and zone-management slots remain separate from fictional tours and hide prices unless requested', () => {
+  const area = { ...buildDemoAreas(defaultDemoConfig)[0], properties: [] };
+  const real = { id: 'real-a', title: 'Casa real seleccionable', latitude: -33.12, longitude: -64.35, price: 123456, currency: 'USD' };
+  const props = {
+    area, clean: true, onSelect() {}, onClose() {}, onEdit() {}, onMapPick() {}, catalogueProperties: [real],
+    managementControls: createElement('button', { type: 'button' }, 'Agregar inmueble'),
+    managementPanel: createElement('form', null, createElement('button', { type: 'submit' }, 'Guardar inmueble')),
+    zoneNavigation: createElement('select', { 'aria-label': 'Cambiar zona' }, createElement('option', null, 'Centro')),
+  };
+  const html = renderToStaticMarkup(createElement(exports.GoogleAerialArea, props));
+  assert.ok(html.includes('Agregar inmueble')); assert.ok(html.includes('Guardar inmueble')); assert.ok(html.includes('Cambiar zona'));
+  assert.ok(html.includes('Casa real seleccionable'));
+  assert.ok(!html.includes('123.456'));
+  assert.ok(!html.includes('propiedades ficticias'));
+  assert.ok(!html.includes('Toque el mapa para elegir la ubicación.'), 'parent controls already supply placement instructions');
+  const visible = renderToStaticMarkup(createElement(exports.GoogleAerialArea, { ...props, catalogueProperties: [{ ...real, showPrice: true }] }));
+  assert.ok(visible.includes('123.456'));
+});
+
+test('public aerial view hides editing and offers remain an optional overlay', () => {
+ const area = buildDemoAreas(defaultDemoConfig)[0];
+ const html = renderToStaticMarkup(createElement(exports.GoogleAerialArea, {area,onSelect(){},onClose(){},floatingContent:createElement('span',null,'Oferta especial')}));
+ assert.ok(!html.includes('Personalizar')); assert.ok(html.includes('Oferta especial'));
 });

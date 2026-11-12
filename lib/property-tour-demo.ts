@@ -10,6 +10,7 @@ export type TourScene = {
   y: number;
 };
 export type TourProperty = {
+  amount?: number; currency?: 'ARS' | 'USD'; features?: string[];
   id: string;
   title: string;
   neighborhood: string;

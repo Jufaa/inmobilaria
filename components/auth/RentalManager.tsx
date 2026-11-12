@@ -1,5 +1,7 @@
 'use client';
 
+import { EditableForm } from './WorkspaceEditPermission';
+
 import { useActionState, useState } from 'react';
 import {
   applyRentAdjustmentAction, createPropertyExpenseAction, createRentChargeAction, createRentalContactAction,
@@ -30,7 +32,7 @@ function Feedback({ state }: { state: RentalActionState }) {
 
 function ContactForm({ slug }: { slug: string }) {
   const [state, action, pending] = useActionState(createRentalContactAction.bind(null, slug), initial);
-  return <form action={action} className={styles.form}>
+  return <EditableForm action={action} className={styles.form}>
     <h3>Nuevo contacto</h3>
     <label>Tipo<select name="kind"><option value="LANDLORD">Propietario</option><option value="TENANT">Inquilino</option></select></label>
     <label>Nombre<input name="name" required minLength={2} maxLength={160} /></label>
@@ -38,14 +40,14 @@ function ContactForm({ slug }: { slug: string }) {
     <label>Teléfono<input name="phone" maxLength={40} /></label>
     <label>Notas<input name="notes" maxLength={1000} /></label>
     <Feedback state={state} /><button disabled={pending}>{pending ? 'Guardando…' : 'Guardar contacto'}</button>
-  </form>;
+  </EditableForm>;
 }
 
 function ContractForm({ slug, contacts, properties }: { slug: string; contacts: Contact[]; properties: Property[] }) {
   const [state, action, pending] = useActionState(createRentalContractAction.bind(null, slug), initial);
   const landlords = contacts.filter((contact) => contact.kind === 'LANDLORD');
   const tenants = contacts.filter((contact) => contact.kind === 'TENANT');
-  return <form action={action} className={styles.form}>
+  return <EditableForm action={action} className={styles.form}>
     <h3>Nuevo contrato</h3>
     <label>Propiedad<select name="propertyId" required defaultValue=""><option value="" disabled>Elegí una propiedad en alquiler</option>{properties.map((property) => <option key={property.id} value={property.id}>{property.title} · {property.neighborhood}</option>)}</select></label>
     <label>Propietario<select name="landlordContactId" required defaultValue=""><option value="" disabled>Elegí un propietario</option>{landlords.map((contact) => <option key={contact.id} value={contact.id}>{contact.name}</option>)}</select></label>
@@ -56,24 +58,24 @@ function ContractForm({ slug, contacts, properties }: { slug: string; contacts: 
     <label>Condiciones / cláusulas manuales<textarea name="terms" rows={4} maxLength={12000} /></label>
     {!landlords.length || !tenants.length ? <p className={styles.hint}>Primero cargá al menos un propietario y un inquilino en Contactos.</p> : null}
     <Feedback state={state} /><button disabled={pending || !landlords.length || !tenants.length || !properties.length}>{pending ? 'Guardando…' : 'Guardar contrato'}</button>
-  </form>;
+  </EditableForm>;
 }
 
 function ChargeForm({ slug, contracts }: { slug: string; contracts: Contract[] }) {
   const [state, action, pending] = useActionState(createRentChargeAction.bind(null, slug), initial);
   const active = contracts.filter((contract) => contract.status === 'ACTIVE');
-  return <form action={action} className={styles.form}>
+  return <EditableForm action={action} className={styles.form}>
     <h3>Generar cargo mensual</h3>
     <label>Contrato activo<select name="contractId" required defaultValue=""><option value="" disabled>Elegí un contrato</option>{active.map((contract) => <option key={contract.id} value={contract.id}>{contract.property.title} · {contract.tenant.name}</option>)}</select></label>
     <div className={styles.two}><label>Período (día 1)<input type="date" name="periodStart" required /></label><label>Vencimiento<input type="date" name="dueDate" required /></label></div>
     <label>Importe (opcional; por defecto el alquiler mensual)<input type="number" name="amount" min="0.01" step="0.01" /></label>
     <Feedback state={state} /><button disabled={pending || !active.length}>{pending ? 'Guardando…' : 'Crear cargo'}</button>
-  </form>;
+  </EditableForm>;
 }
 
 function ExpenseForm({ slug, properties }: { slug: string; properties: Property[] }) {
   const [state, action, pending] = useActionState(createPropertyExpenseAction.bind(null, slug), initial);
-  return <form action={action} className={styles.form}>
+  return <EditableForm action={action} className={styles.form}>
     <h3>Registrar gasto</h3>
     <label>Descripción<input name="description" required minLength={2} maxLength={180} /></label>
     <div className={styles.two}><label>Categoría<input name="category" required maxLength={80} placeholder="Impuesto, reparación…" /></label><label>Propiedad (opcional)<select name="propertyId" defaultValue=""><option value="">Sin asociar</option>{properties.map((property) => <option key={property.id} value={property.id}>{property.title}</option>)}</select></label></div>
@@ -81,16 +83,16 @@ function ExpenseForm({ slug, properties }: { slug: string; properties: Property[
     <div className={styles.two}><label>Vence<input name="dueDate" type="date" /></label><label>Estado<select name="status"><option value="UNPAID">Pendiente</option><option value="PAID">Pagado</option></select></label></div>
     <label>Fecha de pago (si ya fue pagado)<input name="paidAt" type="date" /></label><label>Notas<input name="note" maxLength={1000} /></label>
     <Feedback state={state} /><button disabled={pending}>{pending ? 'Guardando…' : 'Guardar gasto'}</button>
-  </form>;
+  </EditableForm>;
 }
 
 function PaymentForm({ slug, charges }: { slug: string; charges: Charge[] }) {
   const [state, action, pending] = useActionState(createRentPaymentAction.bind(null, slug), initial);
-  return <form action={action} className={styles.inlineForm}>
+  return <EditableForm action={action} className={styles.inlineForm}>
     <label>Registrar pago parcial o total<select name="chargeId" required defaultValue=""><option value="" disabled>Elegí un saldo</option>{charges.map((charge) => <option key={charge.id} value={charge.id}>{charge.propertyTitle} · {charge.tenantName} · vence {day(charge.dueDate)} · saldo {currency(charge.balance, charge.currency)}</option>)}</select></label>
     <div className={styles.three}><label>Importe<input name="amount" type="number" min="0.01" step="0.01" required /></label><label>Fecha<input name="paidAt" type="date" required /></label><label>Medio<input name="method" maxLength={80} placeholder="Transferencia" /></label></div>
     <label>Nota<input name="note" maxLength={500} /></label><Feedback state={state} /><button disabled={pending || !charges.length}>{pending ? 'Guardando…' : 'Registrar pago'}</button>
-  </form>;
+  </EditableForm>;
 }
 
 function chargeStatus(charge: Charge) {
@@ -109,7 +111,7 @@ function AdjustmentForm({ slug, contract }: { slug: string; contract: Contract }
     : null;
   return <details className={styles.details}>
     <summary>Ajustar alquiler · actual {currency(contract.monthlyRent, contract.currency)}</summary>
-    <form action={action} className={styles.form}>
+    <EditableForm action={action} className={styles.form}>
       <input type="hidden" name="contractId" value={contract.id} />
       <div className={styles.two}><label>Porcentaje manual (+/-)<input name="percent" type="number" step="0.0001" min="-99.9999" max="1000" required value={percent} onChange={(event) => setPercent(event.target.value)} /></label><label>Fecha efectiva<input name="effectiveDate" type="date" required /></label></div>
       <p className={styles.hint}>Vista previa: {currency(contract.monthlyRent, contract.currency)} → {proposed ? currency(proposed, contract.currency) : 'ingresá el porcentaje'}.</p>
@@ -117,7 +119,7 @@ function AdjustmentForm({ slug, contract }: { slug: string; contract: Contract }
       <label>Nota<input name="note" maxLength={1000} /></label>
       <p className={styles.hint}>El cálculo usa el porcentaje ingresado y redondea a 2 decimales. Revisá el monto antes de aplicar. No se aplica ningún índice legal automáticamente.</p>
       <Feedback state={state} /><button disabled={pending}>{pending ? 'Aplicando…' : 'Aplicar ajuste y guardar historial'}</button>
-    </form>
+    </EditableForm>
     {contract.adjustments.length ? <ul className={styles.history}>{contract.adjustments.map((adjustment) => <li key={adjustment.id}>{day(adjustment.effectiveDate)} · {currency(adjustment.oldMonthlyRent, contract.currency)} → {currency(adjustment.newMonthlyRent, contract.currency)} ({adjustment.percent}%) · {adjustment.source}</li>)}</ul> : <p className={styles.hint}>Todavía no hay ajustes registrados.</p>}
   </details>;
 }
@@ -140,7 +142,7 @@ function PrintDraft({ contract }: { contract: Contract }) {
 
 function MarkExpensePaid({ slug, expense }: { slug: string; expense: Expense }) {
   const [state, action, pending] = useActionState(markExpensePaidAction.bind(null, slug), initial);
-  return <form action={action} className={styles.markPaid}><input type="hidden" name="expenseId" value={expense.id} /><label>Fecha de pago<input name="paidAt" type="date" required /></label><Feedback state={state} /><button disabled={pending}>{pending ? 'Guardando…' : 'Marcar pagado'}</button></form>;
+  return <EditableForm action={action} className={styles.markPaid}><input type="hidden" name="expenseId" value={expense.id} /><label>Fecha de pago<input name="paidAt" type="date" required /></label><Feedback state={state} /><button disabled={pending}>{pending ? 'Guardando…' : 'Marcar pagado'}</button></EditableForm>;
 }
 
 export function RentalManager({ slug, contacts, properties, contracts, charges, expenses, auditEvents }: {

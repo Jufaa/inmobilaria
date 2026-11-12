@@ -119,3 +119,8 @@ not a scan of either stock-video interior.
   photorealistic reconstructions. Source-map provenance remains that of the
   supplied repository asset; no new imagery was downloaded. The customer can
   replace both videos with prepared transitions matching their own map artwork.
+
+
+## Fictional agency intro (local generation)
+
+`agency-fictional-intro.mp4` and `agency-fictional-intro-poster.jpg` are generated locally by `node scripts/generate-fictional-intro.mjs`. Source: the repository's fictional illustration `public/demo-assets/fictional-rio-cuarto-living.png`. Ten-second 1280×720 H.264 motion graphic, with explicit fictional/illustrative disclosure. It is not real property footage, an aerial survey, or newly generated AI video. No external media upload or remote generation service is used.

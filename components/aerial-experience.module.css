@@ -11,27 +11,27 @@
 .unavailable p { font-size: 13px; color: #b9cbb1; }
 .unavailable button { padding: 12px; border: 1px solid #c7d3bc; border-radius: 6px; background: #edf3e7; color: #213f31; cursor: pointer; }
 .notice { position: absolute; z-index: 4; top: 85px; left: 25px; max-width: min(350px,80vw); margin: 0; padding: 10px 13px; border-radius: 5px; background: #edf3e7; color: #213f31; font-size: 11px; }
-.editorDialog { width: min(840px, calc(100vw - 30px)); max-width: none; max-height: 90dvh; padding: 0; border: 1px solid #d7e0cc; border-radius: 12px; background: #f7f8f2; color: var(--ink); overscroll-behavior: contain; }
-.editor { padding: 28px; color: #203d37; }
+.editorDialog { width: min(1040px, calc(100vw - 32px)); max-width: none; max-height: 92dvh; padding: 24px; overflow-y: auto; border: 1px solid var(--panel-border, #7d9586); border-radius: 16px; background: var(--panel-surface, #ffffff); color: var(--panel-text, #18372a); font-size: var(--type-sm); line-height: var(--line-body); overscroll-behavior: contain; }
+.editor { padding: 28px; color: var(--panel-text); }
 .editorHeader { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .editorHeader h2 { font-size: 29px; font-weight: 450; margin: 7px 0 0; letter-spacing: -.5px; }
-.editorHeader > button { display: grid; place-items: center; width: 33px; height: 33px; border: 1px solid #d9e2ce; border-radius: 50%; background: #edf2e6; color: #526948; cursor: pointer; }
-.editorNotice { padding: 13px 15px; border: 1px solid #dee6d5; border-radius: 6px; color: #7a8870; background: #eef3e7; font-size: 11px; line-height: 1.8; margin: 20px 0; }
-.editorProperty { padding: 19px; border: 1px solid #d9e2d0; border-radius: 8px; margin: 20px 0; min-width: 0; }
-.editorProperty legend { padding: 0 8px; font-size: 12px; font-weight: 600; }
-.reorder { display: flex; align-items: center; gap: 7px; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 1px solid #e0e7d8; }
-.reorder > span { flex: 1; color: #87927a; font-size: 10px; }
-.reorder button { display: grid; place-items: center; width: 29px; height: 29px; background: #edf2e6; color: #45643a; border: 1px solid #d2dec8; border-radius: 4px; cursor: pointer; }
+.editorHeader > button { display: grid; place-items: center; width: 33px; height: 33px; border: 1px solid var(--panel-border); border-radius: 50%; background: var(--panel-soft); color: var(--panel-text); cursor: pointer; }
+.editorNotice { padding: 13px 15px; border: 1px solid var(--panel-border); border-radius: 6px; color: var(--panel-muted); background: var(--panel-soft); font-size: var(--type-sm); line-height: 1.8; margin: 20px 0; }
+.editorProperty { padding: 19px; border: 1px solid var(--panel-border); border-radius: 8px; margin: 20px 0; min-width: 0; }
+.editorProperty legend { padding: 0 8px; font-size: var(--type-sm); font-weight: 600; }
+.reorder { display: flex; align-items: center; gap: 7px; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 1px solid var(--panel-border); }
+.reorder > span { flex: 1; color: var(--panel-muted); font-size: var(--type-sm); }
+.reorder button { display: grid; place-items: center; width: 29px; height: 29px; background: var(--panel-soft); color: var(--panel-text); border: 1px solid var(--panel-border); border-radius: 4px; cursor: pointer; }
 .reorder button:disabled { opacity: .35; cursor: default; }
 .editorGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.editorGrid label { display: grid; gap: 6px; min-width: 0; font-size: 10px; color: #6c7d60; }
-.editorGrid input, .editorGrid textarea, .editorGrid select { width: 100%; min-width: 0; padding: 10px; border: 1px solid #d3dec7; border-radius: 5px; background: #fff; color: #36502c; font: inherit; font-size: 12px; }
+.editorGrid label { display: grid; gap: 6px; min-width: 0; font-size: var(--type-sm); color: var(--panel-muted); }
+.editorGrid input, .editorGrid textarea, .editorGrid select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--panel-border); border-radius: 5px; background: var(--panel-input); color: var(--panel-text); font: inherit; font-size: var(--type-sm); }
 .wideField { grid-column: 1 / -1; }
-.fieldHint { color: #8b947f; font-size: 9px; line-height: 1.8; margin-bottom: 0; }
-.editorError { padding: 12px 15px; border: 1px solid #d8ada0; border-radius: 5px; background: #fbede5; color: #8c4d39; font-size: 11px; line-height: 1.7; }
+.fieldHint { color: var(--panel-muted); font-size: var(--type-sm); line-height: 1.8; margin-bottom: 0; }
+.editorError { padding: 12px 15px; border: 1px solid var(--panel-border); border-radius: 5px; background: var(--panel-error-surface); color: var(--panel-error); font-size: var(--type-sm); line-height: 1.7; }
 .editorFooter { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-top: 10px; }
-.editorFooter > button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 11px 13px; border: 1px solid #cddbc0; border-radius: 5px; background: transparent; color: #718463; font: inherit; font-size: 11px; cursor: pointer; }
-.editorFooter > button.saveButton { border-color: #476d3b; color: #fff; background: #476d3b; }
+.editorFooter > button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 11px 13px; border: 1px solid var(--panel-border); border-radius: 5px; background: transparent; color: var(--panel-text); font: inherit; font-size: var(--type-sm); cursor: pointer; }
+.editorFooter > button.saveButton { border-color: var(--panel-accent); color: var(--panel-button-text); background: var(--panel-accent); }
 @media (max-width: 700px) {
   .closeTour { top: auto; bottom: 18px; min-height: 43px; }
   .editor { padding: 18px; }
@@ -90,3 +90,31 @@
   .aerialLegend p, .aerialDisclaimer { display: none; }
   .aerialListings > button { padding: 8px; }
 }
+.cleanAerial .aerialHeader { align-items: start; gap: 10px; }
+.cleanAerial .aerialFooter { background: var(--popup-bg, #f6f8ef); color: var(--popup-text, #203d37); max-height: 45%; overflow: auto; }
+.cleanAerial .aerialFooter summary { cursor: pointer; padding: 8px; font-size: 12px; }
+.cleanAerial .aerialFooter details > p { color: inherit; }
+.cleanAerial .aerialListings button { background: var(--popup-bg, #f6f8ef); color: var(--popup-text, #203d37); }
+.cleanAerial .aerialListings strong, .cleanAerial .aerialListings small { color: inherit; }
+.cleanAerial .aerialHeader > details { max-height: 65dvh; overflow: auto; }
+
+@media (max-width: 640px) { .editorDialog { width: calc(100vw - 16px); max-height: 94dvh; padding: 16px; } }
+
+.editor input:focus-visible, .editor textarea:focus-visible, .editor select:focus-visible, .editor button:focus-visible { outline: 3px solid var(--panel-focus); outline-offset: 3px; }
+
+.zoneNavigation { display: flex; align-items: center; gap: 6px; pointer-events: auto; }
+.zoneNavigation label { display: flex; align-items: center; gap: 6px; font-size: .85rem; }
+.zoneNavigation select { max-width: 200px; min-height: 40px; border: 1px solid var(--panel-border, #7d9586); border-radius: 8px; background: var(--panel-surface, #fff); color: var(--panel-text, #18372a); padding: 6px; }
+.cleanAerial .aerialHeader { flex-wrap: wrap; padding: 14px 18px 32px; }
+.cleanAerial .aerialHeader > div { position: static; text-align: left; padding: 0; }
+.aerialManagementControls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1 1 100%; }
+.aerialManagementControls > div { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; }
+.aerialManagementControls [role='status'] { color: #fff; background: #15392be6; padding: 8px; border-radius: 8px; font-size: .85rem; }
+.aerialManagementPanel { position: absolute; inset: 0; z-index: 10; overflow: auto; padding: 24px; background: var(--panel-canvas, #f5f7f5); color: var(--panel-text, #18372a); }
+.aerialManagementPanel form { max-width: 850px; margin: auto; }
+@media (max-width: 640px) { .aerialManagementPanel { padding: 12px; } .zoneNavigation { flex: 1 1 100%; } }
+
+.aerialOffers { position: absolute; right: 18px; bottom: 48px; z-index: 3; max-width: calc(100% - 100px); }
+.aerialSearchControls { position: absolute; z-index: 4; top: 110px; left: 18px; }
+.aerialSearchResults { position: absolute; z-index: 4; top: 140px; right: 88px; }
+@media(max-width:900px) { .aerialSearchControls { left: 8px; top: 110px; } .aerialSearchResults { right: 8px; top: auto; bottom: 48px; } }

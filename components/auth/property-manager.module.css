@@ -57,3 +57,9 @@
 .fields input::placeholder, .fields textarea::placeholder { color: var(--panel-placeholder); opacity: 1; }
 
 .fields input:focus-visible, .fields select:focus-visible, .fields textarea:focus-visible, .availability select:focus-visible { outline: 3px solid var(--panel-focus); outline-offset: 3px; }
+.contactEditor { margin-top: 14px; padding: 14px; border: 1px solid var(--panel-border); border-radius: 10px; }
+.contactEditor summary { cursor: pointer; font-weight: 600; }
+.contactEditor fieldset { display: grid; gap: 10px; padding: 14px 0; margin: 0; border: 0; min-width: 0; }
+.contactEditor label { display: grid; gap: 6px; }
+.contactEditor input,.contactEditor textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid var(--panel-border); border-radius: 8px; font: inherit; background: var(--panel-input); color: var(--panel-text); }
+.contactEditor small { display: block; color: var(--panel-muted); line-height: 1.5; }

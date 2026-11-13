@@ -23,7 +23,8 @@ test('agency presentation and demo templates hydrate and persist through members
   assert.match(actions, /requireAgencyPlatformEditAccess/);
   assert.match(actions, /parsePresentationSettings/);
   assert.match(actions, /parseDemoConfig/);
-  assert.match(actions, /presentationSettings/);
+  assert.match(actions, /savePresentationPreservingContacts/);
+  assert.match(read('../lib/properties/property-contact-service.ts'), /presentationSettings/);
   assert.match(actions, /demoTourConfig/);
   assert.match(panel, /presentationSettings/);
   assert.match(panel, /demoTourConfig/);

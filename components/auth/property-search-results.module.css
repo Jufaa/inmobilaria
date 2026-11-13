@@ -1,12 +1,15 @@
-.results { width: min(320px, calc(100vw - 32px)); max-height: min(65dvh, 720px); box-sizing: border-box; overflow: auto; padding: 12px; border: 1px solid var(--panel-border, #bacab7); border-radius: 12px; background: var(--panel-surface, #fff); color: var(--panel-text, #18372a); box-shadow: 0 6px 24px #0002; display: grid; gap: 12px; }
+.results { color-scheme: light; width: min(320px, calc(100vw - 32px)); max-height: min(65dvh, 720px); box-sizing: border-box; overflow: auto; padding: 12px; border: 1px solid var(--panel-border, var(--line, #bacab7)); border-radius: 12px; background: var(--panel-surface, var(--white, #fff)); color: var(--panel-text, var(--ink, #18372a)); box-shadow: 0 6px 24px #0002; display: grid; gap: 12px; }
 .results header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.results button,.reopen { font: inherit; cursor: pointer; border: 1px solid var(--panel-border, #bacab7); border-radius: 8px; background: var(--panel-surface, #fff); color: var(--panel-text, #18372a); padding: 8px; }
+.results button,.reopen { font: inherit; cursor: pointer; border: 1px solid var(--panel-border, var(--line, #bacab7)); border-radius: 8px; background: var(--panel-surface, var(--white, #fff)); color: var(--panel-text, var(--ink, #18372a)); padding: 8px; }
 .cards { display: grid; gap: 10px; }
 .results .card { display: grid; grid-template-columns: 90px minmax(0,1fr); padding: 0; text-align: left; overflow: hidden; }
-.card img,.noPhoto { width: 90px; height: 100%; min-height: 110px; object-fit: cover; background: var(--panel-soft, #e8f0eb); }
+.card img,.noPhoto { width: 90px; height: 100%; min-height: 110px; object-fit: cover; background: var(--panel-soft, var(--paper, #e8f0eb)); }
 .noPhoto { display: grid; place-items: center; font-size: .75rem; }
 .description { display: grid; gap: 6px; padding: 10px; min-width: 0; overflow-wrap: anywhere; }
 .description span,.description small { font-size: .75rem; }
 .description strong { font-size: .9rem; }
-.results button:focus-visible,.reopen:focus-visible { outline: 3px solid var(--panel-focus, #236b58); outline-offset: 2px; }
+.results button:focus-visible,.reopen:focus-visible { outline: 3px solid var(--panel-focus, var(--accent, #236b58)); outline-offset: 2px; }
 @media(max-width: 640px) { .results { max-height: 38dvh; width: min(320px,calc(100vw - 16px)); } }
+
+.reopen { color-scheme: light; }
+:global(html[data-theme='dark']) .results, :global(html[data-theme='dark']) .reopen { color-scheme: dark; }

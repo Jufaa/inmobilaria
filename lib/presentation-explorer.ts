@@ -25,6 +25,10 @@ export const defaultExplorerSettings: ExplorerSettings = {
   kindColors: { Casa: '#4c8067', Departamento: '#527bb5', Dúplex: '#a57545', Lote: '#aa8052' },
   zones: null, listings: {},
 };
+export const propertyKindColorDefaults:Record<string,string> = { ...defaultExplorerSettings.kindColors, PH:'#8b5cf6', Local:'#d97706', Otro:'#64748b' };
+export function effectivePropertyKindColors(colors:Record<string,string>):Record<string,string> {
+  return {...propertyKindColorDefaults,...colors};
+}
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const color = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
 const label = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0 && v.length <= 100;

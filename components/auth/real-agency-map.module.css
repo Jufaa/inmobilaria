@@ -48,3 +48,6 @@
 
 .filterPosition { position: absolute; top: 16px; left: 16px; z-index: 34; }
 @media(max-width:640px) { .filterPosition { top: 8px; left: 8px; } }
+
+.sidebarLegend > span { display: flex; align-items: center; gap: 8px; }
+.legendSwatch { display: inline-block; width: 12px; height: 12px; min-width: 12px; border: 1px solid var(--panel-border); border-radius: 50%; vertical-align: middle; }

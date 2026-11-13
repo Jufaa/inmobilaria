@@ -7,7 +7,7 @@ import ts from 'typescript';
 import {defaultDemoConfig, zonesForConfig} from '../lib/property-tour-config.ts';
 import * as tourApi from '../lib/property-tour-demo.ts';
 import {agencyOfferTargets} from '../lib/agency-offer-targets.ts';
-import {presentationZones} from '../lib/presentation-explorer.ts';
+import {presentationZones,effectivePropertyKindColors} from '../lib/presentation-explorer.ts';
 const require = createRequire(import.meta.url);
 function load(path, mocks = {}) {
   const source = readFileSync(new URL(path, import.meta.url), 'utf8');
@@ -20,7 +20,7 @@ const all = tree => !tree || typeof tree !== 'object' ? [] : Array.isArray(tree)
 const text = tree => tree == null || typeof tree === 'boolean' ? '' : typeof tree !== 'object' ? String(tree) : Array.isArray(tree) ? tree.map(text).join(' ') : text(tree.props?.children);
 const property = { id: 'real-cuid', title: 'Casa real', address: 'Calle 100', neighborhood: 'Centro', price: 100, currency: 'USD', area: 50, bedrooms: 1, bathrooms: 1, status: 'DRAFT', type: 'HOUSE', operation: 'SALE', features: [], description: 'Descripción real', media: [{id:'photo',kind:'PHOTO',url:'https://photos.example/a.jpg'}] };
 test('focused property detail contains actual selected record only, without sample sidebar', () => {
-  const { RealPropertyDetail } = load('../components/auth/RealPropertyDetail.tsx');
+  const { RealPropertyDetail } = load('../components/auth/RealPropertyDetail.tsx',{'../PropertyWhatsAppButton':{PropertyWhatsAppButton:'whatsapp-button'}});
   const tree = RealPropertyDetail({ property, onBack() {} });
   assert.match(text(tree), /Casa real/);
   assert.match(text(tree), /Calle 100/);
@@ -32,6 +32,7 @@ test('real creation form captures location hidden and defaults to draft, not tem
   const { RealMapPropertyForm } = load('../components/auth/RealMapPropertyForm.tsx', {
     react: { ...require('react'), useState: value => [value, () => {}], useRef: value => ({current:value}) },
     '@vercel/blob/client': {upload(){}},
+    './Property360Upload':{Property360Upload:'360-upload'},
   });
   const tree = RealMapPropertyForm({ agencySlug:'agency', agencyId:'canonical', position:[-64,-33], photosEnabled:false, onCreate() {}, onSaved() {}, onCancel() {} });
   for (const name of ['latitude','longitude']) assert.equal(all(tree).find(n => n.props?.name === name).props.type, 'hidden');
@@ -56,7 +57,7 @@ function mapHarness(initialProperties = []) {
   const preferences = { name:'', showLegend:true, showPrices:false, showDetails:false, popupColor:'#ffffff', popupTextColor:'#222222', zones:[], listings:{}, filters:{zone:true,price:true,kind:true,bedrooms:true,garage:true}, kindColors:{Casa:'#123456'} };
   const { RealAgencyMap } = load('../components/auth/RealAgencyMap.tsx', {
     react:hooks, 'next/dynamic':{__esModule:true,default:()=> 'city-map'}, 'next/navigation':{useRouter:()=>({refresh:()=>refreshed++})},
-    '@/lib/presentation-explorer':{ defaultExplorerSettings:preferences, presentationZones, enabledPresentationFilters:()=>({}), matchesPresentationFilters:item=>!item.hidden },
+    '@/lib/presentation-explorer':{ defaultExplorerSettings:preferences, effectivePropertyKindColors, presentationZones, enabledPresentationFilters:()=>({}), matchesPresentationFilters:item=>!item.hidden },
     '@/lib/property-tour-config':{zonesForConfig}, './WorkspaceAerialExperience':{WorkspaceAerialExperience:'aerial-experience'},
     './MapWorkspaceLayout':{MapSidebarControls:'sidebar-controls'},'./MapSearchControls':{MapSearchControls:'map-filters'},'./AgencyIntro':{AgencyIntro:'agency-intro'},
     '@/lib/property-search':searchApi,'./PropertySearchResults':{PropertySearchResults:'search-results'},
@@ -102,7 +103,7 @@ test('canceling property placement cannot create a record and map markers preser
   assert.equal(app.refreshed(),0);
 });
 test('editing reuses existing business values and never removes existing photos', () => {
-  const {RealMapPropertyForm}=load('../components/auth/RealMapPropertyForm.tsx', {react:{...require('react'),useState:v=>[v,()=>{}],useRef:v=>({current:v})},'@vercel/blob/client':{upload(){}}});
+  const {RealMapPropertyForm}=load('../components/auth/RealMapPropertyForm.tsx', {react:{...require('react'),useState:v=>[v,()=>{}],useRef:v=>({current:v})},'@vercel/blob/client':{upload(){}},'./Property360Upload':{Property360Upload:'360-upload'}});
   const tree=RealMapPropertyForm({agencySlug:'slug',agencyId:'canonical',position:[-64,-33],photosEnabled:true,initial:property,onCreate(){},onSaved(){},onCancel(){}});
   const field=name=>all(tree).find(node=>node.props?.name===name);
   assert.equal(field('title').props.defaultValue,'Casa real');
@@ -185,7 +186,7 @@ test('aerial navigation focuses another zone directly and keeps pin management a
   assert.equal(app.find('video'),undefined,'direct zone navigation does not replay a video');
 });
 
-test('aerial property creation is the only pin workflow and non-system-administrators have no edit controls', () => {
+test('aerial property creation is the only pin workflow and read-only users have no edit controls', () => {
   const app=mapHarness();app.props.exampleConfig=defaultDemoConfig;app.props.settings.explorer.zones=null;
   app.props.settings.points=[{id:'old-reference',name:'Saved point',latitude:-33.121,longitude:-64.351,color:'#123456'}];
   app.find('city-map').props.onAreaSelect(app.find('city-map').props.areas[0].id);
@@ -303,4 +304,18 @@ test('optional area filtering updates map markers and marketplace results togeth
  app.find('filters').props.onChange({minArea:'999999'});
  assert.equal(app.find('city-map').props.properties.length,0);assert.equal(app.find('search-results').props.items.length,0);
  app.find('search-results').props.onClear();assert.equal(app.find('city-map').props.properties.length,1);assert.equal(app.find('search-results'),undefined);
+});
+
+test('agency catalogue permission allows real editing but not example or advanced customization',()=>{
+ const app=mapHarness([{...property,latitude:-33.12,longitude:-64.35}]);app.props.canCustomize=false;app.props.canManageCatalogue=true;
+ const selected=app.find('city-map');selected.props.onSelect(selected.props.properties[0].id);
+ assert.equal(typeof app.find('property-detail').props.onEdit,'function');app.find('property-detail').props.onEdit();assert.ok(app.find('property-form'));
+ const examples=mapHarness([]);examples.props.exampleConfig=defaultDemoConfig;examples.props.settings.explorer.zones=null;examples.props.canCustomize=false;examples.props.canManageCatalogue=true;
+ examples.find('city-map').props.onAreaSelect('centro');const aerial=examples.find('aerial-experience');
+ assert.equal(aerial.props.canEdit,false);assert.equal(aerial.props.onSaveExampleDetails,undefined);assert.ok(aerial.props.canvasActions.managementControls);
+});
+test('legend swatches retain exact selected category backgrounds independently from text color',()=>{
+ const app=mapHarness([]);app.props.fullscreen=true;app.props.settings.explorer.kindColors={Casa:'#ee1100',Departamento:'#0044cc',PH:'#aa22cc',Lote:'#aa8800'};
+ const colors=all(app.find('sidebar-controls')).filter(node=>node.type==='i').map(node=>node.props.style.backgroundColor);
+ assert.ok(colors.includes('#ee1100'));assert.ok(colors.includes('#0044cc'));assert.ok(colors.includes('#aa22cc'));
 });

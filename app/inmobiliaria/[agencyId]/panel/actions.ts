@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAgencyPlatformEditAccess } from '@/lib/agency-access';
+import { requireAgencyCatalogueEditAccess } from '@/lib/agency-access';
 import { head } from '@vercel/blob';
 import { parsePropertyPhotoUrls, verifyPropertyPhotos } from '@/lib/properties/property-photo-policy';
 import {
@@ -95,7 +95,7 @@ export async function createPropertyAction(
   _previousState: PropertyActionState,
   formData: FormData,
 ): Promise<PropertyActionState> {
-  const { membership } = await requireAgencyPlatformEditAccess(agencySlug);
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
   const parsed = parseProperty(formData);
   if ('error' in parsed) return parsed;
   try {
@@ -112,7 +112,7 @@ export async function createMapPropertyAction(
   agencySlug: string,
   formData: FormData,
 ): Promise<{ property?: AgencyPropertyRecord; error?: string }> {
-  const { membership } = await requireAgencyPlatformEditAccess(agencySlug);
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
   const parsed = parseProperty(formData);
   if ('error' in parsed) return parsed;
   if (parsed.data.latitude === null || parsed.data.longitude === null) return { error: 'Seleccione la ubicación de la propiedad en el mapa.' };
@@ -138,7 +138,7 @@ export async function updatePropertyAction(
   _previousState: PropertyActionState,
   formData: FormData,
 ): Promise<PropertyActionState> {
-  const { membership } = await requireAgencyPlatformEditAccess(agencySlug);
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
   const propertyId = value(formData, 'propertyId');
   if (!propertyId || propertyId.length > 64) return { error: 'La propiedad seleccionada no es válida.' };
   const parsed = parseProperty(formData);
@@ -159,7 +159,7 @@ export async function updatePropertyAvailabilityAction(
   _previousState: PropertyActionState,
   formData: FormData,
 ): Promise<PropertyActionState> {
-  const { membership } = await requireAgencyPlatformEditAccess(agencySlug);
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
   const propertyId = value(formData, 'propertyId');
   const status = value(formData, 'status');
   if (!propertyId || propertyId.length > 64) return { error: 'La propiedad seleccionada no es válida.' };
@@ -178,7 +178,7 @@ export async function updatePropertyAvailabilityAction(
 export async function updateMapPropertyAction(
   agencySlug: string, propertyId: string, formData: FormData,
 ): Promise<{ property?: AgencyPropertyRecord; error?: string }> {
-  const { membership } = await requireAgencyPlatformEditAccess(agencySlug);
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
   if (!propertyId || propertyId.length > 64) return { error: 'La propiedad seleccionada no es válida.' };
   const parsed = parseProperty(formData);
   if ('error' in parsed) return parsed;

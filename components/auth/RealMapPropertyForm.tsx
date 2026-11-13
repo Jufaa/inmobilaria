@@ -1,4 +1,5 @@
 'use client';
+import {Property360Upload} from './Property360Upload';
 
 import { useRef, useState, type FormEvent } from 'react';
 import { upload } from '@vercel/blob/client';
@@ -69,6 +70,7 @@ export function RealMapPropertyForm({ agencySlug, agencyId, position, photosEnab
           <label>Dormitorios<input type="number" name="bedrooms" min={0} max={50} defaultValue={initial?.bedrooms ?? 0} /></label><label>Baños<input type="number" name="bathrooms" min={0} max={50} defaultValue={initial?.bathrooms ?? 0} /></label>
           <label className={styles.wide}>Descripción<textarea name="description" maxLength={5000} defaultValue={initial?.description} /></label><label className={styles.wide}>Características<input name="features" defaultValue={initial?.features.join(', ')} placeholder="Cochera, patio" /></label>
         </div></details>
+        <div className={styles.wide}><Property360Upload propertyId={initial?.id} disabled={busy}/></div>
       </fieldset>
       {error && <p role="alert">{error}</p>}
       <div className={styles.actions}><button type="button" disabled={busy} onClick={onCancel}>Cancelar</button><button className={styles.primary} disabled={busy} type="submit">{busy ? 'Guardando…' : 'Guardar propiedad'}</button></div>

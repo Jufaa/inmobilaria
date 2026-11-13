@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAgencyPlatformEditAccess } from '@/lib/agency-access';
+import { savePresentationPreservingContacts } from '@/lib/properties/property-contact-service';
 import { prisma } from '@/lib/prisma';
 import { parsePresentationSettings, type PresentationSettings } from '@/lib/agency-presentation';
 import { parseDemoConfig, type DemoConfig } from '@/lib/property-tour-config';
@@ -25,13 +26,9 @@ export async function savePresentationSettingsAction(
   if (serialized.length > 3_000_000) return { settings: null, error: 'La presentación es demasiado grande. Reduce la imagen del plano.' };
 
   try {
-    await prisma.agencyPresentationConfig.upsert({
-      where: { agencyId: membership.agency.id },
-      create: { agencyId: membership.agency.id, presentationSettings: settings },
-      update: { presentationSettings: settings },
-    });
+    const saved=await savePresentationPreservingContacts(membership.agency.id,settings);
     refreshPresentation(agencySlug);
-    return { settings, error: null };
+    return { settings:saved, error: null };
   } catch {
     return { settings: null, error: 'No se pudieron guardar los ajustes de presentación. Los datos anteriores no se modificaron.' };
   }

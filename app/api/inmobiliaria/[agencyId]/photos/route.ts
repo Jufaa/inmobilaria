@@ -1,5 +1,5 @@
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { requireAgencyPlatformEditAccess } from '@/lib/agency-access';
+import { requireAgencyCatalogueEditAccess } from '@/lib/agency-access';
 import { isPropertyPhotoPath, propertyPhotoContentTypes, propertyPhotoMaxBytes } from '@/lib/properties/property-photo-policy';
 
 const maxBodyBytes = 16 * 1024;
@@ -34,7 +34,7 @@ export async function POST(request: Request, context: { params: Promise<{ agency
       body,
       token,
       onBeforeGenerateToken: async pathname => {
-        const { membership } = await requireAgencyPlatformEditAccess(slug);
+        const { membership } = await requireAgencyCatalogueEditAccess(slug);
         if (!isPropertyPhotoPath(pathname, membership.agency.id)) throw new Error('Invalid upload path');
         return {
           allowedContentTypes: propertyPhotoContentTypes,

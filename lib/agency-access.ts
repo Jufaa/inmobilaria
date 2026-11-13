@@ -33,10 +33,13 @@ async function requireAgencyAccess(slug: string, membershipRoles: ('OWNER' | 'AD
   ]);
 
   const canEdit = account?.platformRole === 'OWNER';
-  if (membership) return { user, membership, canEdit };
+  if (membership) {
+    const canManageCatalogue=canEdit||['OWNER','ADMIN'].includes(membership.role);
+    return { user, membership, canEdit, canManageCatalogue, canManageBasic:canManageCatalogue };
+  }
   if (account?.platformRole === 'OWNER') {
     const agency = await prisma.agency.findUnique({ where: { slug } });
-    if (agency) return { user, membership: { role: 'OWNER' as const, agency }, canEdit: true };
+    if (agency) return { user, membership: { role: 'OWNER' as const, agency }, canEdit: true, canManageCatalogue:true, canManageBasic:true };
   }
   redirect('/workspace');
 }
@@ -66,5 +69,16 @@ export async function requireAgencyPlatformEditAccess(slug: string) {
   if (account?.platformRole !== 'OWNER') redirect('/workspace');
   const agency = await prisma.agency.findUnique({ where: { slug } });
   if (!agency) redirect('/workspace');
-  return { user, membership: { role: 'OWNER' as const, agency }, canEdit: true };
+  return { user, membership: { role: 'OWNER' as const, agency }, canEdit: true, canManageCatalogue:true, canManageBasic:true };
+}
+
+export async function requireAgencyPropertyContactAccess(slug: string) {
+  return requireAgencyAccess(slug, ['OWNER', 'ADMIN']);
+}
+
+export async function requireAgencyCatalogueEditAccess(slug:string) {
+  return requireAgencyAccess(slug, ['OWNER','ADMIN']);
+}
+export async function requireAgencyBasicEditAccess(slug:string) {
+  return requireAgencyAccess(slug, ['OWNER','ADMIN']);
 }

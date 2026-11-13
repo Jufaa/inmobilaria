@@ -51,16 +51,19 @@ test('shell passes only its explicit permission, independently of membership adm
   }
 });
 
-test('offers require edit permission while existing read navigation remains available', () => {
+test('role navigation hides administration from agencies and retains all administrator panels', () => {
   const { AgencySectionTabs } = load('components/auth/AgencySectionTabs.tsx', { 'next/link': { __esModule: true, default: 'a' } });
-  const render = canEdit => renderToStaticMarkup(React.createElement(AgencySectionTabs, { panelPath: '/panel', activeSection: 'map', canManageCollaboration: true, canManageRentals: true, canEdit }));
+  const render = canEdit => renderToStaticMarkup(React.createElement(AgencySectionTabs, { panelPath: '/panel', activeSection: 'map', canManageCollaboration: true, canManageRentals: true, canManageBasic:canEdit, canEdit }));
   for (const canEdit of [undefined, false]) {
     const html = render(canEdit);
     assert.doesNotMatch(html, /href="\/panel\/ofertas"/);
-    assert.match(html, /href="\/panel\/alquileres"/);
-    assert.match(html, /href="\/panel\/colaboracion"/);
+    assert.doesNotMatch(html, /href="\/panel\/alquileres"/);
+    assert.doesNotMatch(html, /href="\/panel\/colaboracion"/);
+    assert.match(html, /href="\/panel\/propiedades"/);
   }
   assert.match(render(true), /href="\/panel\/ofertas"/);
+  assert.match(render(true), /href="\/panel\/alquileres"/);
+  assert.match(render(true), /href="\/panel\/colaboracion"/);
 });
 
 test('all mutation managers use the permission form without replacing navigation or print controls', () => {
@@ -73,7 +76,7 @@ test('all mutation managers use the permission form without replacing navigation
   assert.match(read('components/auth/RentalManager.tsx'), /onClick=\{\(\) => window\.print\(\)\}/);
   for (const route of ['propiedades', 'consultas', 'analiticas', 'zonas', 'colaboracion', 'alquileres']) {
     const source = read(`app/inmobiliaria/[agencyId]/panel/${route}/page.tsx`);
-    assert.match(source, /\{ user, membership, canEdit \}/);
+    assert.match(source, /\{ user, membership, canEdit(?:,[^}]+)? \}/);
     assert.match(source, /canEdit=\{canEdit\}/);
   }
 });
@@ -85,14 +88,17 @@ test('rendered catalogue mutation controls are disabled for readers without hidi
   const { PropertyManager } = load('components/auth/PropertyManager.tsx', {
     react: { ...React, useActionState: () => [{}, undefined, false] },
     './WorkspaceEditPermission': api,
+    './Property360Upload':{Property360Upload:()=>null},
+    './PropertyContactForm':{PropertyContactForm:props=>React.createElement('form',{'data-contact-property':props.propertyId})},
     '@/app/inmobiliaria/[agencyId]/panel/actions': actions,
   });
   const property = { id: 'existing', title: 'Existing real listing', type: 'HOUSE', operation: 'SALE', status: 'DRAFT', price: 10, currency: 'USD', neighborhood: 'Centro', address: 'Street', area: 50, bedrooms: 1, bathrooms: 1, features: [] };
-  const render = canEdit => renderToStaticMarkup(React.createElement(api.WorkspaceEditPermissionProvider, { canEdit }, React.createElement(PropertyManager, { agencySlug: 'agency', properties: [property] })));
+  const render = (canEdit,canManagePropertyContact=false) => renderToStaticMarkup(React.createElement(api.WorkspaceEditPermissionProvider, { canEdit }, React.createElement(PropertyManager, { agencySlug: 'agency', properties: [property],canManagePropertyContact })));
   const readOnly = render(false);
   assert.match(readOnly, /Existing real listing/);
   assert.doesNotMatch(readOnly, /Editar ficha/);
   assert.equal((readOnly.match(/class="editableFields" disabled=""/g) ?? []).length, 2);
+  const contactOnly=render(false,true);assert.match(contactOnly,/data-contact-property="existing"/);assert.equal((contactOnly.match(/class="editableFields" disabled=""/g)??[]).length,2);
   const editable = render(true);
   assert.match(editable, /Editar ficha/);
   assert.doesNotMatch(editable, /class="editableFields" disabled=""/);

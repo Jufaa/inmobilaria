@@ -2,6 +2,8 @@ import { requireAgencyCollaborationAccess } from '@/lib/agency-access';
 import { WorkspaceShell } from '@/components/auth/WorkspaceShell';
 import { PersonalizationPanels } from '@/components/auth/PersonalizationPanels';
 import { AgencyPresentationSettings } from '@/components/auth/AgencyPresentationSettings';
+import { AgencyBasicAppearance } from '@/components/auth/AgencyBasicAppearance';
+import { saveAgencyBasicAppearanceAction, saveAgencyBasicBrandColorAction } from './basic-actions';
 import { BrandingForm } from './BrandingForm';
 import styles from './branding.module.css';
 import { prisma } from '@/lib/prisma';
@@ -14,7 +16,7 @@ import { savePresentationSettingsAction } from './presentation-actions';
 
 export default async function Page({ params }: { params: Promise<{ agencyId: string }> }) {
   const { agencyId } = await params;
-  const { user, membership, canEdit } = await requireAgencyCollaborationAccess(agencyId);
+  const { user, membership, canEdit, canManageBasic } = await requireAgencyCollaborationAccess(agencyId);
   const [presentationConfig, properties] = await Promise.all([
     prisma.agencyPresentationConfig.findUnique({ where: { agencyId: membership.agency.id } }),
     listAgencyProperties(membership.agency.id),
@@ -24,6 +26,7 @@ export default async function Page({ params }: { params: Promise<{ agencyId: str
   return (
     <WorkspaceShell
       canEdit={canEdit}
+      canManageBasic={canManageBasic}
       agencyName={membership.agency.name}
       agencySlug={agencyId}
       brandPrimaryColor={membership.agency.brandPrimaryColor}
@@ -32,8 +35,9 @@ export default async function Page({ params }: { params: Promise<{ agencyId: str
       canManageCollaboration
     >
       <main className={styles.page}>
-        <header><p>Configuración de la inmobiliaria</p><h1>Personalización</h1><span>Elija qué quiere personalizar: identidad, mapa, inmuebles o apariencia.</span></header>
-        <PersonalizationPanels identity={
+        <header><p>Configuración de la inmobiliaria</p><h1>Personalización</h1><span>{canEdit ? 'Elija qué quiere personalizar: identidad, mapa, inmuebles o apariencia.' : 'Personalice los colores de su inmobiliaria y de las propiedades.'}</span></header>
+        {!canEdit ? <AgencyBasicAppearance agencySlug={agencyId} brandPrimaryColor={membership.agency.brandPrimaryColor} initialSettings={settings}
+          onSaveBrand={saveAgencyBasicBrandColorAction.bind(null, agencyId)} onSaveAppearance={saveAgencyBasicAppearanceAction.bind(null, agencyId)} /> : <PersonalizationPanels identity={
         <BrandingForm
           agencySlug={agencyId}
           initial={{
@@ -53,7 +57,7 @@ export default async function Page({ params }: { params: Promise<{ agencyId: str
             onCreate={createMapPropertyAction.bind(null, agencyId)} onUpdate={updateMapPropertyAction.bind(null, agencyId)} canCustomize={canEdit} embedded />}
           initialSettings={settings}
           onPersist={savePresentationSettingsAction.bind(null, agencyId)}
-        />} />
+        />} />}
       </main>
     </WorkspaceShell>
   );

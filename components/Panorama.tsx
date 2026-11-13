@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-export default function Panorama({ url }: { url?: string }) {
+export default function Panorama({ url, label }: { url?: string; label?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -83,9 +83,9 @@ export default function Panorama({ url }: { url?: string }) {
       <div className="tour-label">
         360°{' '}
         <span>
-          {synthetic
+          {label ?? (synthetic
             ? 'Panorama sintético de una propiedad ficticia · Generado para la maqueta, no relevamiento real'
-            : 'Panorama de demostración · No verificado como recorrido de esta propiedad'}
+            : 'Panorama de demostración · No verificado como recorrido de esta propiedad')}
         </span>
       </div>
       {loading && <div className="tour-status">Cargando panorama…</div>}

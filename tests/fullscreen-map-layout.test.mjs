@@ -26,14 +26,14 @@ test('fullscreen map and drawers use viewport bounds rather than a short centere
  const map=readFileSync(new URL('../components/auth/real-agency-map.module.css',import.meta.url),'utf8');assert.match(map,/\.fullscreen\s+\.canvas\s*\{[^}]*inset:\s*0/s);
 });
 
-function layoutHarness(wide) {
+function layoutHarness(wide,administration='administration') {
  const slots=[],effects=[];let cursor=0,focused='';const context={value:null,Provider:'provider'};const media={matches:wide,addEventListener(){},removeEventListener(){}};
  const api=load('../components/auth/MapWorkspaceLayout.tsx',{
   react:{createContext:()=>context,useContext:()=>context.value,useId:()=>'layout-test',useRef(initial){const i=cursor++;return slots[i]??=({current:initial});},useEffect:callback=>effects.push(callback),useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];}},
   'react-dom':{createPortal:(children,host)=>({children,host})},
  });
  const old=globalThis.window;globalThis.window={matchMedia:query=>query.includes('min-width')?media:{matches:!wide}};
- const render=()=>{cursor=0;const tree=api.MapWorkspaceLayout({header:'header',operation:'operation',administration:'administration',children:'map'});context.value=tree.props.value;return tree;};
+ const render=()=>{cursor=0;const tree=api.MapWorkspaceLayout({header:'header',operation:'operation',administration,children:'map'});context.value=tree.props.value;return tree;};
  const aside=side=>nodes(render()).find(node=>node.type==='aside'&&node.props.id.endsWith(`-${side}`));
  const toggle=side=>nodes(render()).find(node=>node.type==='button'&&node.props['aria-controls']?.endsWith(`-${side}`));
  const init=()=>{render();effects[0]();};
@@ -67,4 +67,10 @@ test('fullscreen control offsets target CityMap actual map-top wrapper, includin
  assert.match(css,/\.viewport\s+:global\(\.map-top\)\s*\{[^}]*top:\s*148px/);
  assert.match(css,/data-administration-open='true'\]\s+:global\(\.map-top\)/);
  assert.doesNotMatch(css,/:global\(\.map-view-switch\)/);
+});
+
+
+test('layout has no administration toggle or drawer when the shell omits that role-only content',()=>{
+ const app=layoutHarness(true,null);
+ try{app.init();assert.equal(app.toggle('administration'),undefined);assert.equal(app.aside('administration'),undefined);assert.equal(nodes(app.render()).find(node=>node.props?.['data-administration-open']!==undefined).props['data-administration-open'],false);assert.match(text(app.render()),/operation/);}finally{app.close();}
 });

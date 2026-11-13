@@ -20,7 +20,7 @@ function setup({ denied = false, photos = [], verificationFails = false, missing
   service.updateAgencyPropertyWithPhotos = async (...args) => { calls.push(args); return missing ? null : { id: args[1], ...args[2], media: [{ id: 'old-photo' }] }; };
   const actions = load('../app/inmobiliaria/[agencyId]/panel/actions.ts', {
     'next/cache': { revalidatePath: path => paths.push(path) },
-    '@/lib/agency-access': { requireAgencyPlatformEditAccess: async () => { if (denied) throw Error('denied'); return { membership: { agency: { id: 'canonical-agency' } } }; } },
+    '@/lib/agency-access': { requireAgencyCatalogueEditAccess: async () => { if (denied) throw Error('denied'); return { membership: { agency: { id: 'canonical-agency' } } }; } },
     '@/lib/properties/agency-property-service': service,
     '@/lib/properties/property-photo-policy': { parsePropertyPhotoUrls: () => photos, verifyPropertyPhotos: async () => { if (verificationFails) throw Error('store rejected'); } },
     '@vercel/blob': { head: async () => ({}) },

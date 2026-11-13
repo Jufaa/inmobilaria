@@ -18,7 +18,7 @@ function access({ platformRole = 'USER', memberRole = 'OWNER', signedIn = true, 
     if (id === '@/auth') return { auth: async () => signedIn ? { user: { id: 'signed-user', platformRole: 'OWNER' } } : null };
     if (id === '@/lib/prisma') return { prisma: {
       user: { findUnique: async args => { assert.equal(args.where.id, 'signed-user'); return { platformRole }; } },
-      membership: { findFirst: async args => memberRole && args.where.role.in.includes(memberRole) ? { role: memberRole, agency } : null },
+      membership: { findFirst: async args => memberRole && args.where.agency.slug === agency.slug && args.where.role.in.includes(memberRole) ? { role: memberRole, agency } : null },
       agency: { findUnique: async args => { calls.push(args); return exists && args.where.slug === agency.slug ? agency : null; } },
     } };
     throw Error(id);
@@ -59,7 +59,6 @@ test('system owner resolves canonical agency without membership and read boundar
 });
 
 const actionFiles = [
-  'app/inmobiliaria/[agencyId]/panel/actions.ts',
   'app/inmobiliaria/[agencyId]/panel/alquileres/actions.ts',
   'app/inmobiliaria/[agencyId]/panel/colaboracion/actions.ts',
   'app/inmobiliaria/[agencyId]/panel/consultas/actions.ts',
@@ -68,7 +67,7 @@ const actionFiles = [
   'app/inmobiliaria/[agencyId]/panel/personalizacion/presentation-actions.ts',
 ];
 
-test('every agency mutation rejects non-platform members before service, Blob or cache side effects', async () => {
+test('advanced agency mutations reject non-platform members before service, Blob or cache side effects', async () => {
   for (const memberRole of ['OWNER', 'ADMIN', 'EDITOR']) {
     const guards = access({ memberRole }).api;
     for (const path of actionFiles) {
@@ -91,7 +90,7 @@ test('every agency mutation rejects non-platform members before service, Blob or
   }
 });
 
-test('upload token issuance rejects all non-platform membership roles without issuing a token', async () => {
+test('upload tokens permit owning-agency catalogue managers but reject read-only membership roles', async () => {
   const old = process.env.BLOB_READ_WRITE_TOKEN;
   process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
   try {
@@ -104,8 +103,8 @@ test('upload token issuance rejects all non-platform membership roles without is
         throw Error(id);
       });
       const response = await api.POST(new Request('https://app.example/photos', { method: 'POST', body: '{}' }), { params: Promise.resolve({ agencyId: 'agency-slug' }) });
-      assert.equal(response.status, 400);
-      assert.equal(tokens, 0);
+      assert.equal(response.status, memberRole==='EDITOR'?400:200);
+      assert.equal(tokens, memberRole==='EDITOR'?0:1);
     }
   } finally { if (old === undefined) delete process.env.BLOB_READ_WRITE_TOKEN; else process.env.BLOB_READ_WRITE_TOKEN = old; }
 });
@@ -118,6 +117,7 @@ test('presentation and sample saves refresh map, personalization and offers only
       const api = load('app/inmobiliaria/[agencyId]/panel/personalizacion/presentation-actions.ts', id => {
         if (id === 'next/cache') return { revalidatePath: path => refreshed.push(path) };
         if (id === '@/lib/agency-access') return { requireAgencyPlatformEditAccess: async () => { if (outcome === 'denied') throw Error('denied'); return { membership: { agency: { id: 'canonical-id' } } }; } };
+        if(id==='@/lib/properties/property-contact-service')return{savePresentationPreservingContacts:async(agencyId,settings)=>{writes.push({where:{agencyId},update:{presentationSettings:settings}});if(outcome==='database-failure')throw Error('failed');return settings;}};
         if (id === '@/lib/agency-presentation') return { parsePresentationSettings: value => outcome === 'invalid' ? null : value };
         if (id === '@/lib/property-tour-config') return { parseDemoConfig: value => outcome === 'invalid' ? null : value };
         if (id === '@/lib/prisma') return { prisma: { agencyPresentationConfig: { upsert: async args => { writes.push(args); if (outcome === 'database-failure') throw Error('failed'); } } } };
@@ -139,4 +139,15 @@ test('presentation and sample saves refresh map, personalization and offers only
       if (outcome === 'denied' || outcome === 'invalid') assert.equal(writes.length, 0);
     }
   }
+});
+
+test('property contact editing is a narrow owning-agency permission and never widens old mutation rights',async()=>{
+ for(const memberRole of ['OWNER','ADMIN']){
+  const app=access({memberRole});assert.equal((await app.api.requireAgencyPropertyContactAccess('agency-slug')).membership.agency.id,'canonical-id');
+  await assert.rejects(()=>app.api.requireAgencyPlatformEditAccess('agency-slug'),/redirect:/);
+ }
+ await assert.rejects(()=>access({memberRole:'OWNER'}).api.requireAgencyPropertyContactAccess('another-agency'),/redirect:/);
+ for(const memberRole of ['EDITOR','AGENT',null])await assert.rejects(()=>access({memberRole}).api.requireAgencyPropertyContactAccess('agency-slug'),/redirect:/);
+ await assert.rejects(()=>access({signedIn:false}).api.requireAgencyPropertyContactAccess('agency-slug'),/redirect:/);
+ assert.equal((await access({platformRole:'OWNER',memberRole:null}).api.requireAgencyPropertyContactAccess('agency-slug')).canEdit,true);
 });

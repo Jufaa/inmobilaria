@@ -4,15 +4,15 @@
 .clean { min-height: 600px; height: calc(100dvh - 145px); }
 .toolbar { position: absolute; z-index: 4; top: 16px; left: 16px; right: 80px; display: flex; flex-wrap: wrap; align-items: start; gap: 8px; pointer-events: none; }
 .toolbar > * { pointer-events: auto; }
-.toolbar > strong, .toolbar button, .filterPanel > summary { border: 1px solid #d5decf; border-radius: 10px; background: var(--popup-bg, #f6f8ef); color: var(--popup-text, #203d37); padding: 12px 15px; font: inherit; font-size: 12px; }
+.toolbar > strong, .toolbar button { border: 1px solid #d5decf; border-radius: 10px; background: var(--popup-bg, #f6f8ef); color: var(--popup-text, #203d37); padding: 12px 15px; font: inherit; font-size: 12px; }
 .toolbar > strong { font-weight: 700; margin-right: auto; }
 .toolbar button { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
-.filterPanel { max-width: min(320px, calc(100vw - 90px)); color: var(--popup-text, #203d37); background: var(--popup-bg, #f6f8ef); border-radius: 10px; }
+.filterPanel { max-width: min(320px, calc(100vw - 90px)); color: var(--panel-text, var(--ink, #203d37)); background: var(--panel-surface, var(--white, #ffffff)); border-radius: 10px; color-scheme: light; }
 .filterPanel summary { cursor: pointer; list-style-position: inside; }
-.filterFields { display: grid; gap: 10px; padding: 14px; max-height: min(60dvh, 550px); overflow: auto; min-width: 240px; }
+.filterFields { color: var(--panel-text, var(--ink, #203d37)); color-scheme: light; display: grid; gap: 10px; padding: 14px; max-height: min(60dvh, 550px); overflow: auto; min-width: 240px; }
 .filterFields label { display: grid; gap: 5px; font-size: 12px; }
-.filterFields input, .filterFields select { width: 100%; padding: 9px; border: 1px solid #bacab7; border-radius: 6px; background: #fff; color: #213c32; font: inherit; }
-.filterFields button { cursor: pointer; padding: 10px; }
+.filterFields input, .filterFields select { width: 100%; box-sizing: border-box; padding: 9px; border: 1px solid var(--panel-border, var(--line, #bacab7)); border-radius: 6px; background: var(--panel-input, var(--white, #ffffff)); color: var(--panel-text, var(--ink, #213c32)); font: inherit; color-scheme: inherit; }
+.filterFields button { cursor: pointer; padding: 10px; border: 1px solid var(--panel-border, var(--line, #bacab7)); border-radius: 8px; background: var(--panel-soft, var(--paper, #e8f0eb)); color: var(--panel-text, var(--ink, #203d37)); }
 .clean .zones { bottom: 46px; left: 16px; right: 16px; padding: 0; background: transparent; border: 0; box-shadow: none; backdrop-filter: none; }
 .clean .zoneButtons { display: flex; flex-wrap: wrap; max-height: 125px; overflow: auto; gap: 8px; }
 .clean .zoneButtons button { width: auto; min-width: 120px; flex: 0 0 auto; padding: 10px 14px; background: var(--popup-bg); color: var(--popup-text); }
@@ -86,3 +86,11 @@
 @media (max-width: 900px) {
   .sharedCatalogue { top: 325px; left: 15px; right: auto; max-height: 190px; width: min(365px, calc(100% - 85px)); }
 }
+
+.filterPanel > summary, .filterFields details > summary { cursor: pointer; border: 1px solid var(--panel-border, var(--line, #bacab7)); border-radius: 8px; padding: 10px 12px; background: var(--panel-soft, var(--paper, #e8f0eb)); color: var(--panel-text, var(--ink, #203d37)); }
+.filterFields select option { background: var(--panel-input, var(--white, #ffffff)); color: var(--panel-text, var(--ink, #203d37)); }
+.filterFields input::placeholder { color: var(--panel-placeholder, var(--ink, #596d60)); opacity: 1; }
+.filterFields small { color: var(--panel-muted, var(--ink, #425b50)); }
+.filterFields [role='alert'] { color: var(--panel-error, var(--ink, #a32626)); }
+.filterPanel summary:focus-visible, .filterFields input:focus-visible, .filterFields select:focus-visible, .filterFields button:focus-visible, .filterFields summary:focus-visible { outline: 3px solid var(--panel-focus, var(--accent, #276740)); outline-offset: 2px; }
+:global(html[data-theme='dark']) .filterPanel, :global(html[data-theme='dark']) .filterFields { color-scheme: dark; }

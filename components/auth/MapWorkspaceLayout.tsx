@@ -10,7 +10,7 @@ export function MapSidebarControls({children}:{children:ReactNode}) {
   return host ? createPortal(children,host) : null;
 }
 
-export function MapWorkspaceLayout({header,operation,administration,children}:{header:ReactNode;operation:ReactNode;administration:ReactNode;children:ReactNode}) {
+export function MapWorkspaceLayout({header,operation,administration,operationFooter,children}:{header:ReactNode;operation:ReactNode;administration:ReactNode;operationFooter?:ReactNode;children:ReactNode}) {
   const id=useId();
   const [operationOpen,setOperationOpen]=useState(false);
   const [administrationOpen,setAdministrationOpen]=useState(false);
@@ -29,21 +29,21 @@ export function MapWorkspaceLayout({header,operation,administration,children}:{h
     else {setAdministrationOpen(value=>!value);if(narrow)setOperationOpen(false);}
   }
   return <OperationControlsHost.Provider value={controlsHost}>
-    <div className={styles.viewport} data-operation-open={operationOpen} data-administration-open={administrationOpen}>
+    <div className={styles.viewport} data-operation-open={operationOpen} data-administration-open={!!administration&&administrationOpen}>
       <div className={styles.mapContent}>{children}</div>
       <div className={styles.mapHeader}>{header}</div>
       <button ref={operationToggle} type="button" className={`${styles.toggle} ${styles.operationToggle}`} aria-expanded={operationOpen} aria-controls={`${id}-operation`} onClick={()=>toggle('operation')}>☰ Operación</button>
-      <button ref={administrationToggle} type="button" className={`${styles.toggle} ${styles.administrationToggle}`} aria-expanded={administrationOpen} aria-controls={`${id}-administration`} onClick={()=>toggle('administration')}>Administración ☰</button>
+      {administration&&<button ref={administrationToggle} type="button" className={`${styles.toggle} ${styles.administrationToggle}`} aria-expanded={administrationOpen} aria-controls={`${id}-administration`} onClick={()=>toggle('administration')}>Administración ☰</button>}
       <aside id={`${id}-operation`} className={`${styles.pane} ${styles.operationPane}`} aria-label="Operación" hidden={!operationOpen}
         onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setOperationOpen(false);operationToggle.current?.focus();}}}>
         <header><strong>Operación</strong><button type="button" aria-label="Cerrar operación" onClick={()=>{setOperationOpen(false);operationToggle.current?.focus();}}>×</button></header>
-        <div className={styles.paneBody}><div className={styles.operationControls} ref={setControlsHost}/>{operation}</div>
+        <div className={styles.paneBody}><div className={styles.operationControls} ref={setControlsHost}/>{operation}{operationFooter}</div>
       </aside>
-      <aside id={`${id}-administration`} className={`${styles.pane} ${styles.administrationPane}`} aria-label="Administración" hidden={!administrationOpen}
+      {administration&&<aside id={`${id}-administration`} className={`${styles.pane} ${styles.administrationPane}`} aria-label="Administración" hidden={!administrationOpen}
         onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setAdministrationOpen(false);administrationToggle.current?.focus();}}}>
         <header><strong>Administración</strong><button type="button" aria-label="Cerrar administración" onClick={()=>{setAdministrationOpen(false);administrationToggle.current?.focus();}}>×</button></header>
         <div className={styles.paneBody}>{administration}</div>
-      </aside>
+      </aside>}
     </div>
   </OperationControlsHost.Provider>;
 }

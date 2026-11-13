@@ -2,16 +2,15 @@
 
 import { useState, type FormEvent } from 'react';
 import type { PresentationSettings } from '@/lib/agency-presentation';
-import { defaultExplorerSettings } from '@/lib/presentation-explorer';
 import type { PropertyOffer, OfferTarget } from '@/lib/property-offers';
 import styles from './property-offers.module.css';
 import { PanelColorPicker } from './PanelColorPicker';
-export function AgencyOffersManager({initialSettings,targets,onPersist}:{initialSettings:PresentationSettings;targets:OfferTarget[];onPersist:(value:unknown)=>Promise<{settings:PresentationSettings|null;error:string|null}>}) {
+export function AgencyOffersManager({initialSettings,targets,onPersist}:{initialSettings:PresentationSettings;targets:OfferTarget[];onPersist:(value:PropertyOffer[])=>Promise<{settings:PresentationSettings|null;error:string|null}>}) {
   const [settings,setSettings]=useState(initialSettings),[editing,setEditing]=useState<PropertyOffer|null>(null),[target,setTarget]=useState(''),[price,setPrice]=useState(''),[currency,setCurrency]=useState<'ARS'|'USD'>('USD'),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[color,setColor]=useState('#eab308');
   const offers=settings.explorer?.offers??[];
   async function persist(next:PropertyOffer[]) {
     setBusy(true);setMessage('');
-    try {const result=await onPersist({...settings,explorer:{...(settings.explorer??defaultExplorerSettings),offers:next}});if(!result.settings||result.error){setMessage(result.error??'No se pudieron guardar las ofertas.');return false;}setSettings(result.settings);setMessage('Ofertas guardadas. El mapa mostrará las ofertas activas.');return true;}
+    try {const result=await onPersist(next);if(!result.settings||result.error){setMessage(result.error??'No se pudieron guardar las ofertas.');return false;}setSettings(result.settings);setMessage('Ofertas guardadas. El mapa mostrará las ofertas activas.');return true;}
     catch {setMessage('No se pudieron guardar las ofertas.');return false;}
     finally {setBusy(false);}
   }
@@ -33,6 +32,6 @@ export function AgencyOffersManager({initialSettings,targets,onPersist}:{initial
       <div className={styles.actions}><button disabled={busy||(!editing&&offers.length>=20)} type="submit">{busy?'Guardando…':'Guardar oferta'}</button>{editing&&<button type="button" onClick={()=>{setEditing(null);setTarget('');setPrice('');setColor('#eab308');}}>Cancelar edición</button>}</div>
     </fieldset></form>
     {message&&<p role="status">{message}</p>}
-    {offers.map(offer=><article className={styles.form} key={offer.id}><h2>{offer.title}</h2><p>{offer.enabled?'Activa':'Oculta'} · {offer.currency} {new Intl.NumberFormat('es-AR').format(offer.price)}</p><div className={styles.actions}><button type="button" disabled={busy} onClick={()=>{setEditing(offer);setTarget(`${offer.source}|${offer.propertyId}`);setPrice(String(offer.price));setCurrency(offer.currency);setColor(offer.color??'#eab308');}}>Editar</button><button type="button" disabled={busy} onClick={()=>void persist(offers.filter(item=>item.id!==offer.id))}>Quitar oferta</button></div></article>)}
+    {offers.map(offer=><article className={styles.form} key={offer.id}><h2>{offer.title}</h2><p>{offer.source==='example'?'Ejemplo ficticio · ':''}{offer.enabled?'Activa':'Oculta'} · {offer.currency} {new Intl.NumberFormat('es-AR').format(offer.price)}</p><div className={styles.actions}><button type="button" disabled={busy} onClick={()=>{setEditing(offer);setTarget(`${offer.source}|${offer.propertyId}`);setPrice(String(offer.price));setCurrency(offer.currency);setColor(offer.color??'#eab308');}}>Editar</button><button type="button" disabled={busy} onClick={()=>void persist(offers.filter(item=>item.id!==offer.id))}>Quitar oferta</button></div></article>)}
   </main>;
 }

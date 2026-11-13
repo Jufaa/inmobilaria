@@ -47,9 +47,9 @@
 .fields input::placeholder, .fields textarea::placeholder { color: var(--zone-placeholder); opacity: 1; }
 .fields input:focus-visible, .fields select:focus-visible, .fields textarea:focus-visible, .assignment select:focus-visible, .page button:focus-visible { outline: 3px solid var(--zone-focus); outline-offset: 3px; }
 .wide { grid-column: 1 / -1; }
-.form button, .assignment button, .danger { min-height: 44px; border: 1px solid transparent; border-radius: 9px; background: var(--zone-accent); color: var(--zone-button-text); padding: 10px 14px; font: inherit; font-weight: var(--weight-semibold); cursor: pointer; }
-.form button:hover:not(:disabled), .assignment button:hover:not(:disabled) { background: var(--zone-accent-hover); }
-.form button:disabled, .assignment button:disabled { opacity: .65; cursor: wait; }
+.form button, .editForm button, .assignment button, .danger { min-height: 44px; border: 1px solid transparent; border-radius: 9px; background: var(--zone-accent); color: var(--zone-button-text); padding: 10px 14px; font: inherit; font-weight: var(--weight-semibold); cursor: pointer; }
+.form button:hover:not(:disabled), .editForm button:hover:not(:disabled), .assignment button:hover:not(:disabled) { background: var(--zone-accent-hover); }
+.form button:disabled, .editForm button:disabled, .assignment button:disabled { opacity: .65; cursor: wait; }
 .hint { font-size: var(--type-sm); padding: 10px 12px; }
 .section { margin-top: 18px; }
 .section > p { color: var(--zone-muted); }
@@ -95,4 +95,19 @@
   .assignment button { grid-column: 2; }
   .card { align-items: flex-start; }
   .fields { grid-template-columns: 1fr; }
+}
+
+:global(html) :global([data-panel-brand='custom']) .page {
+  --zone-ink: var(--panel-text, #18372a);
+  --zone-muted: var(--panel-muted, #425b50);
+  --zone-canvas: var(--panel-canvas, #f5f7f5);
+  --zone-surface: var(--panel-surface, #ffffff);
+  --zone-input: var(--panel-input, #ffffff);
+  --zone-note: var(--panel-soft, #e8f0eb);
+  --zone-line: var(--panel-border, #7d9586);
+  --zone-placeholder: var(--panel-muted, #596d60);
+  --zone-accent: var(--panel-accent, #24543e);
+  --zone-accent-hover: var(--panel-accent-hover, #173f2b);
+  --zone-button-text: var(--panel-button-text, #ffffff);
+  --zone-focus: var(--panel-focus, #276740);
 }

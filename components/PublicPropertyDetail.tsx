@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { PublicPropertyDetails } from '@/lib/properties/public-inquiry-service';
+import {PropertyWhatsAppButton} from './PropertyWhatsAppButton';
 import { PublicPropertyInquiryForm } from './PublicPropertyInquiryForm';
 import styles from './public-property-detail.module.css';
 import { PublicAnalyticsEvent } from './PublicAnalyticsEvent';
@@ -55,7 +56,7 @@ export function PublicPropertyDetail({ property }: { property: PublicPropertyDet
           <p className={styles.locationPrivacy}>La ubicación se muestra por barrio para proteger la privacidad del inmueble.</p>
         </article>
         <aside className={styles.contact}>
-          <PublicPropertyInquiryForm propertyId={property.id} presentingAgencySlug={property.presentingAgencySlug} />
+          {property.whatsappContact?<><h2>Converse con la inmobiliaria</h2><p>Consulte o coordine una visita directamente por WhatsApp.</p><PropertyWhatsAppButton propertyId={property.id} title={property.title} contact={property.whatsappContact}/><small>El mensaje y el enlace se preparan automáticamente. Usted confirma el envío en WhatsApp.</small></>:<PublicPropertyInquiryForm propertyId={property.id} presentingAgencySlug={property.presentingAgencySlug} />}
         </aside>
       </div>
       <footer className={styles.footer}>Territorio · Río Cuarto</footer>

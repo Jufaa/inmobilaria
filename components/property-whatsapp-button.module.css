@@ -1,0 +1,2 @@
+.button { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; max-width: 100%; padding: 12px 16px; border-radius: 10px; background: var(--panel-accent,#236b58); color: var(--panel-button-text,#fff); text-decoration: none; text-align: center; font: inherit; font-weight: 600; }
+.button:focus-visible { outline: 3px solid var(--panel-focus,#236b58); outline-offset: 3px; }

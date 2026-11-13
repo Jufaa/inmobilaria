@@ -14,7 +14,7 @@ function harness(path,props,mocks={}) {
  const render=()=>{cursor=0;return Object.values(exports)[0](props);};return{render};
 }
 test('offers admin selects the target currency and persists only explicit offer settings',async()=>{
- const writes=[];const props={initialSettings:structuredClone(defaultPresentationSettings),targets:[{id:'real-1',source:'real',title:'Casa real',price:1200,currency:'ARS'}],onPersist:async settings=>{writes.push(settings);return{settings,error:null};}};
+ const writes=[];const props={initialSettings:structuredClone(defaultPresentationSettings),targets:[{id:'real-1',source:'real',title:'Casa real',price:1200,currency:'ARS'}],onPersist:async offers=>{writes.push(offers);return{settings:{...defaultPresentationSettings,explorer:{offers}},error:null};}};
  const app=harness('../components/auth/AgencyOffersManager.tsx',props,{'./PanelColorPicker':{PanelColorPicker:'PanelColorPicker'},'@/lib/presentation-explorer':{defaultExplorerSettings:{listings:{},kindColors:{}}}});
  nodes(app.render()).find(n=>n.type==='select'&&!n.props.name).props.onChange({target:{value:'real|real-1'}});
  assert.equal(nodes(app.render()).find(n=>n.props?.name==='currency').props.value,'ARS');
@@ -22,9 +22,9 @@ test('offers admin selects the target currency and persists only explicit offer 
  const Original=globalThis.FormData;
  globalThis.FormData=class{get(key){return{title:'Oferta nueva',description:'Descripción',enabled:'on'}[key]??null;}};
  try{await nodes(app.render()).find(n=>n.type==='form').props.onSubmit({preventDefault(){},currentTarget:{reset(){}}});}finally{globalThis.FormData=Original;}
- assert.equal(writes.length,1);const offer=writes[0].explorer.offers[0];
+ assert.equal(writes.length,1);const offer=writes[0][0];
  assert.equal(offer.propertyId,'real-1');assert.equal(offer.source,'real');assert.equal(offer.price,1200);assert.equal(offer.currency,'ARS');assert.equal(offer.enabled,true);assert.equal(offer.color,'#2563eb');
- assert.deepEqual(writes[0].points,props.initialSettings.points,'offers never replace catalogue/reference data');
+ assert.ok(Array.isArray(writes[0]),'offers never submit stale catalogue/reference data');
 });
 test('offers popup selects the resolved real property and can be dismissed',()=>{
  const selected=[];const target={id:'real-1',source:'real',title:'Casa real',price:100,currency:'USD'};

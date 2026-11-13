@@ -17,6 +17,7 @@ export function WorkspaceShell({
   canManageCollaboration = false,
   canManageRentals = canManageCollaboration,
   canEdit = false,
+  canManageBasic = canEdit || canManageCollaboration,
   fullscreenMap = false,
   children,
 }: {
@@ -28,6 +29,7 @@ export function WorkspaceShell({
   canManageCollaboration?: boolean;
   canManageRentals?: boolean;
   canEdit?: boolean;
+  canManageBasic?: boolean;
   fullscreenMap?: boolean;
   children: React.ReactNode;
 }) {
@@ -57,8 +59,9 @@ export function WorkspaceShell({
   if(fullscreenMap) return <PanelBrandTheme agencySlug={agencySlug} initialColor={brandPrimaryColor} className={`${styles.shell} ${styles.fullscreenShell}`}>
     <WorkspaceEditPermissionProvider canEdit={canEdit}>
       <MapWorkspaceLayout header={<div className={styles.mapHeaderContent}>{header}</div>}
-        operation={<AgencySectionTabs group="operation" vertical panelPath={panelPath} activeSection={activeSection} canManageCollaboration={canManageCollaboration} canManageRentals={canManageRentals} canEdit={canEdit}/>}
-        administration={<><AgencySectionTabs group="administration" vertical panelPath={panelPath} activeSection={activeSection} canManageCollaboration={canManageCollaboration} canManageRentals={canManageRentals} canEdit={canEdit}/><div className={styles.sidebarAccount}>{accountControls}</div></>}>
+        operation={<AgencySectionTabs group="operation" vertical panelPath={panelPath} activeSection={activeSection} canManageCollaboration={canManageCollaboration} canManageRentals={canManageRentals} canManageBasic={canManageBasic} canEdit={canEdit}/>}
+        operationFooter={canEdit?null:<div className={styles.sidebarAccount}>{accountControls}</div>}
+        administration={canEdit?<><AgencySectionTabs group="administration" vertical panelPath={panelPath} activeSection={activeSection} canManageCollaboration={canManageCollaboration} canManageRentals={canManageRentals} canManageBasic={canManageBasic} canEdit={canEdit}/><div className={styles.sidebarAccount}>{accountControls}</div></>:null}>
         {children}
       </MapWorkspaceLayout>
     </WorkspaceEditPermissionProvider>
@@ -72,6 +75,7 @@ export function WorkspaceShell({
           activeSection={activeSection}
           canManageCollaboration={canManageCollaboration}
           canManageRentals={canManageRentals}
+          canManageBasic={canManageBasic}
           canEdit={canEdit}
         />
         <WorkspaceEditPermissionProvider canEdit={canEdit}>

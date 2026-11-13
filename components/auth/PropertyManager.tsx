@@ -1,5 +1,8 @@
 'use client';
+import {Property360Upload} from './Property360Upload';
 
+import { PropertyContactForm } from './PropertyContactForm';
+import type { PropertyWhatsApp } from '@/lib/properties/property-whatsapp';
 import { EditableForm, useWorkspaceEditPermission } from './WorkspaceEditPermission';
 
 import { useActionState, useState } from 'react';
@@ -77,9 +80,10 @@ function PropertyForm({
         <label className={styles.wide}>Características <span>(separadas por coma)</span><input name="features" maxLength={2500} defaultValue={property?.features.join(', ')} /></label>
         <label className={styles.wide}>Descripción<textarea name="description" rows={4} maxLength={5000} defaultValue={property?.description} /></label>
       </div>
+      <Property360Upload propertyId={property?.id} disabled={pending}/>
       <Feedback state={state} />
       <div className={styles.formFooter}>
-        <p>Las fotos se cargan desde el mapa de la inmobiliaria.</p>
+        <p>Las fotos se cargan desde el mapa. La vista previa 360° es local y no se guarda con la ficha.</p>
         <button className={styles.primaryButton} type="submit" disabled={pending}>{pending ? 'Guardando…' : 'Guardar propiedad'}</button>
       </div>
     </EditableForm>
@@ -102,9 +106,13 @@ function AvailabilityForm({ agencySlug, property }: { agencySlug: string; proper
 export function PropertyManager({
   agencySlug,
   properties,
+  propertyContacts = {},
+  canManagePropertyContact = false,
 }: {
   agencySlug: string;
   properties: AgencyPropertyRecord[];
+  propertyContacts?: Record<string,PropertyWhatsApp>;
+  canManagePropertyContact?: boolean;
 }) {
   const canEdit = useWorkspaceEditPermission();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -117,7 +125,7 @@ export function PropertyManager({
         <span className={styles.count}>{properties.length} {properties.length === 1 ? 'propiedad' : 'propiedades'}</span>
       </header>
       <div className={styles.notice} role="note">
-        Este panel administra información persistente. La carga de fotos, videos y recorridos 360° todavía no está disponible; tampoco se publican estas fichas en el sitio público.
+        Las fichas se guardan en la base de datos. Puede preparar una vista previa 360°; su subida se habilitará al conectar almacenamiento.
       </div>
       {editingProperty ? (
         <PropertyForm agencySlug={agencySlug} property={editingProperty} onCancel={() => setEditingId(null)} />
@@ -139,6 +147,7 @@ export function PropertyManager({
                 <p className={styles.facts}>{types.find(([value]) => value === property.type)?.[1]} · {property.operation === 'SALE' ? 'Venta' : 'Alquiler'} · {property.area} m² · {property.bedrooms} dorm. · {property.bathrooms} baños</p>
                 {property.description && <p className={styles.description}>{property.description}</p>}
                 {property.features.length > 0 && <p className={styles.features}>Características: {property.features.join(', ')}</p>}
+                {canManagePropertyContact&&<PropertyContactForm agencySlug={agencySlug} propertyId={property.id} title={property.title} initial={propertyContacts[property.id]} isPublished={property.status==='PUBLISHED'}/>}
                 <div className={styles.cardActions}>
                   {canEdit && <button className={styles.secondaryButton} type="button" onClick={() => setEditingId(property.id)}>Editar ficha</button>}
                   <AvailabilityForm key={`${property.id}-${property.status}`} agencySlug={agencySlug} property={property} />

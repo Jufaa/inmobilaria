@@ -9,7 +9,7 @@ function setup({ denied = false } = {}) {
   const calls = [], exports = {};
   new Function('require', 'exports', ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText)(id => {
     if (id === '@vercel/blob/client') return { handleUpload: async options => { calls.push(options); if (options.body.type === 'blob.generate-client-token') return options.onBeforeGenerateToken(options.body.payload.pathname, null, false); return { type: 'blob.upload-completed' }; } };
-    if (id === '@/lib/agency-access') return { requireAgencyPlatformEditAccess: async () => { if (denied) throw Error('denied'); return { membership: { agency: { id: 'tenant' } } }; } };
+    if (id === '@/lib/agency-access') return { requireAgencyCatalogueEditAccess: async () => { if (denied) throw Error('denied'); return { membership: { agency: { id: 'tenant' } } }; } };
     if (id === '@/lib/properties/property-photo-policy') return { propertyPhotoContentTypes: ['image/jpeg', 'image/png', 'image/webp'], propertyPhotoMaxBytes: 5242880, isPropertyPhotoPath: (path, id) => path === `agencies/${id}/12345678-1234-4123-8123-123456789abc.jpg` };
     throw Error(id);
   }, exports);

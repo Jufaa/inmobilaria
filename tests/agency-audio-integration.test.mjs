@@ -105,6 +105,8 @@ test('private personalization preserves branding/access and adds the agency-scop
   if(id==='@/lib/properties/agency-property-service')return {listAgencyProperties:async id=>{assert.equal(id,'authorized-id');return [];}};
   if(id==='@/components/auth/RealAgencyMap')return {RealAgencyMap:()=>null};
   if(id==='../actions')return {updateMapPropertyAction:async()=>({}),createMapPropertyAction:async()=>({})};
+  if(id==='@/components/auth/AgencyBasicAppearance')return{AgencyBasicAppearance:()=>null};
+  if(id==='./basic-actions')return{saveAgencyBasicAppearanceAction:async()=>({}),saveAgencyBasicBrandColorAction:async()=>({})};
   if(id==='./presentation-actions')return{savePresentationSettingsAction:async()=>({settings:null,error:null})};
   if(id==='@/components/auth/WorkspaceShell')return{WorkspaceShell};
   if(id==='@/components/auth/AgencyPresentationSettings')return{AgencyPresentationSettings};

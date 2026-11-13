@@ -1,74 +1,32 @@
 import { WorkspaceShell } from '@/components/auth/WorkspaceShell';
-import type { WorkspaceMapPoint, WorkspaceMapProperty, WorkspaceMapZone } from '@/components/auth/WorkspacePropertyMap';
-import { AgencyPresentationMap } from '@/components/auth/AgencyPresentationMap';
+import { RealAgencyMap } from '@/components/auth/RealAgencyMap';
 import { requireAgencyDashboardAccess } from '@/lib/agency-access';
 import { prisma } from '@/lib/prisma';
-import { defaultPresentationSettings, parsePresentationSettings } from '@/lib/agency-presentation';
+import { listAgencyProperties } from '@/lib/properties/agency-property-service';
+import { defaultPresentationSettings, parsePresentationSettings, withAgencyFictionalIntro } from '@/lib/agency-presentation';
 import { defaultDemoConfig, parseDemoConfig } from '@/lib/property-tour-config';
 import { saveDemoConfigAction, savePresentationSettingsAction } from './personalizacion/presentation-actions';
+import { createMapPropertyAction, updateMapPropertyAction } from './actions';
 
 export default async function Page({ params }: { params: Promise<{ agencyId: string }> }) {
   const { agencyId } = await params;
-  const { user, membership } = await requireAgencyDashboardAccess(agencyId);
-  const agencyIdFromSession = membership.agency.id;
-  const [propertyRows, zoneRows, pointRows, presentationConfig] = await Promise.all([
-    prisma.property.findMany({
-      where: { agencyId: agencyIdFromSession },
-      select: { id: true, title: true, status: true, price: true, currency: true, neighborhood: true, zoneId: true, latitude: true, longitude: true },
-      orderBy: { updatedAt: 'desc' },
-    }),
-    prisma.zone.findMany({
-      where: { agencyId: agencyIdFromSession },
-      select: { id: true, name: true, city: true, geometry: true, latitude: true, longitude: true },
-      orderBy: [{ city: 'asc' }, { name: 'asc' }],
-    }),
-    prisma.pointOfInterest.findMany({
-      where: { agencyId: agencyIdFromSession },
-      select: { id: true, name: true, category: true, latitude: true, longitude: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.agencyPresentationConfig.findUnique({ where: { agencyId: agencyIdFromSession } }),
+  const { user, membership, canEdit, canManageCatalogue, canManageBasic } = await requireAgencyDashboardAccess(agencyId);
+  const [properties, presentationConfig, points] = await Promise.all([
+    listAgencyProperties(membership.agency.id),
+    prisma.agencyPresentationConfig.findUnique({ where: { agencyId: membership.agency.id } }),
+    prisma.pointOfInterest.findMany({ where: { agencyId: membership.agency.id }, orderBy: { name: 'asc' } }),
   ]);
-  const properties: WorkspaceMapProperty[] = propertyRows.map((property) => ({
-    ...property,
-    price: property.price.toNumber(),
-    currency: property.currency as 'ARS' | 'USD',
-    latitude: property.latitude?.toNumber() ?? null,
-    longitude: property.longitude?.toNumber() ?? null,
-  }));
-  const zones: WorkspaceMapZone[] = zoneRows.map((zone) => ({
-    ...zone,
-    latitude: zone.latitude?.toNumber() ?? null,
-    longitude: zone.longitude?.toNumber() ?? null,
-  }));
-  const points: WorkspaceMapPoint[] = pointRows.map((point) => ({
-    ...point,
-    latitude: point.latitude.toNumber(),
-    longitude: point.longitude.toNumber(),
-  }));
-
-  return (
-    <WorkspaceShell
-      agencyName={membership.agency.name}
-      agencySlug={agencyId}
-      email={user.email}
-      activeSection="map"
-      canManageCollaboration={['OWNER', 'ADMIN'].includes(membership.role)}
-      canManageRentals={['OWNER', 'ADMIN'].includes(membership.role)}
-    >
-      <AgencyPresentationMap
-        agencyId={membership.agency.id}
-        agencySlug={agencyId}
-        agencyName={membership.agency.name}
-        title={`Mapa de ${membership.agency.name}`}
-        properties={properties}
-        zones={zones}
-        points={points}
-        initialSettings={parsePresentationSettings(presentationConfig?.presentationSettings) ?? defaultPresentationSettings}
-        initialDemoConfig={parseDemoConfig(presentationConfig?.demoTourConfig) ?? defaultDemoConfig}
-        persistSettings={savePresentationSettingsAction.bind(null, agencyId)}
-        persistDemoConfig={saveDemoConfigAction.bind(null, agencyId)}
-      />
-    </WorkspaceShell>
-  );
+  return <WorkspaceShell fullscreenMap canEdit={canEdit} canManageBasic={canManageBasic} agencyName={membership.agency.name} agencySlug={agencyId}
+    brandPrimaryColor={membership.agency.brandPrimaryColor} email={user.email} activeSection="map"
+    canManageCollaboration={['OWNER', 'ADMIN'].includes(membership.role)}
+    canManageRentals={['OWNER', 'ADMIN'].includes(membership.role)}>
+    <RealAgencyMap fullscreen agencyId={membership.agency.id} agencySlug={agencyId} agencyName={membership.agency.name}
+      properties={properties} settings={withAgencyFictionalIntro(parsePresentationSettings(presentationConfig?.presentationSettings) ?? defaultPresentationSettings)}
+      exampleConfig={parseDemoConfig(presentationConfig?.demoTourConfig) ?? defaultDemoConfig}
+      persistSettings={savePresentationSettingsAction.bind(null, agencyId)}
+      persistDemoConfig={saveDemoConfigAction.bind(null, agencyId)}
+      referencePoints={points.map(point => ({ id: `catalogue-${point.id}`, name: point.name, latitude: point.latitude.toNumber(), longitude: point.longitude.toNumber(), color: '#4c8067' }))}
+      photosEnabled={Boolean(process.env.BLOB_READ_WRITE_TOKEN)} onCreate={createMapPropertyAction.bind(null, agencyId)} onUpdate={updateMapPropertyAction.bind(null, agencyId)}
+      canCustomize={canEdit} canManageCatalogue={canManageCatalogue} />
+  </WorkspaceShell>;
 }

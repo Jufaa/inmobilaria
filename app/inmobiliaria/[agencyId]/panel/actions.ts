@@ -1,7 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAgencyDashboardAccess } from '@/lib/agency-access';
+import { requireAgencyCatalogueEditAccess } from '@/lib/agency-access';
+import { head } from '@vercel/blob';
+import { parsePropertyPhotoUrls, verifyPropertyPhotos } from '@/lib/properties/property-photo-policy';
 import {
   createAgencyProperty,
   propertyCurrencies,
@@ -9,8 +11,10 @@ import {
   propertyStatuses,
   propertyTypes,
   updateAgencyProperty,
+  updateAgencyPropertyWithPhotos,
   updateAgencyPropertyStatus,
   type AgencyPropertyInput,
+  type AgencyPropertyRecord,
 } from '@/lib/properties/agency-property-service';
 
 export type PropertyActionState = { error?: string; success?: string };
@@ -91,7 +95,7 @@ export async function createPropertyAction(
   _previousState: PropertyActionState,
   formData: FormData,
 ): Promise<PropertyActionState> {
-  const { membership } = await requireAgencyDashboardAccess(agencySlug);
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
   const parsed = parseProperty(formData);
   if ('error' in parsed) return parsed;
   try {
@@ -104,12 +108,37 @@ export async function createPropertyAction(
   }
 }
 
+export async function createMapPropertyAction(
+  agencySlug: string,
+  formData: FormData,
+): Promise<{ property?: AgencyPropertyRecord; error?: string }> {
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
+  const parsed = parseProperty(formData);
+  if ('error' in parsed) return parsed;
+  if (parsed.data.latitude === null || parsed.data.longitude === null) return { error: 'Seleccione la ubicación de la propiedad en el mapa.' };
+  try {
+    const photos = parsePropertyPhotoUrls(value(formData, 'photoUrls'), membership.agency.id);
+    if (photos.length) {
+      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      if (!token) return { error: 'La carga de fotos no está configurada. Puede guardar la propiedad sin fotos.' };
+      await verifyPropertyPhotos(photos, membership.agency.id, pathname => head(pathname, { token }));
+    }
+    const property = await createAgencyProperty(membership.agency.id, parsed.data, photos);
+    revalidatePath(`/inmobiliaria/${encodeURIComponent(agencySlug)}/panel/propiedades`);
+    revalidatePath(`/inmobiliaria/${encodeURIComponent(agencySlug)}/panel`);
+    revalidatePath(`/inmobiliaria/${encodeURIComponent(agencySlug)}/panel/personalizacion`);
+    return { property };
+  } catch {
+    return { error: 'No se pudo guardar la propiedad. Revise los datos y las fotos e inténtelo nuevamente.' };
+  }
+}
+
 export async function updatePropertyAction(
   agencySlug: string,
   _previousState: PropertyActionState,
   formData: FormData,
 ): Promise<PropertyActionState> {
-  const { membership } = await requireAgencyDashboardAccess(agencySlug);
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
   const propertyId = value(formData, 'propertyId');
   if (!propertyId || propertyId.length > 64) return { error: 'La propiedad seleccionada no es válida.' };
   const parsed = parseProperty(formData);
@@ -130,7 +159,7 @@ export async function updatePropertyAvailabilityAction(
   _previousState: PropertyActionState,
   formData: FormData,
 ): Promise<PropertyActionState> {
-  const { membership } = await requireAgencyDashboardAccess(agencySlug);
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
   const propertyId = value(formData, 'propertyId');
   const status = value(formData, 'status');
   if (!propertyId || propertyId.length > 64) return { error: 'La propiedad seleccionada no es válida.' };
@@ -143,5 +172,31 @@ export async function updatePropertyAvailabilityAction(
     return { success: 'Disponibilidad actualizada.' };
   } catch {
     return { error: 'No se pudo cambiar el estado. Verificá tu acceso y la conexión.' };
+  }
+}
+
+export async function updateMapPropertyAction(
+  agencySlug: string, propertyId: string, formData: FormData,
+): Promise<{ property?: AgencyPropertyRecord; error?: string }> {
+  const { membership } = await requireAgencyCatalogueEditAccess(agencySlug);
+  if (!propertyId || propertyId.length > 64) return { error: 'La propiedad seleccionada no es válida.' };
+  const parsed = parseProperty(formData);
+  if ('error' in parsed) return parsed;
+  if (parsed.data.latitude === null || parsed.data.longitude === null) return { error: 'Seleccione la ubicación de la propiedad en el mapa.' };
+  try {
+    const photos = parsePropertyPhotoUrls(value(formData, 'photoUrls'), membership.agency.id);
+    if (photos.length) {
+      const token = process.env.BLOB_READ_WRITE_TOKEN;
+      if (!token) return { error: 'La carga de fotos no está configurada. Puede guardar la propiedad sin fotos.' };
+      await verifyPropertyPhotos(photos, membership.agency.id, pathname => head(pathname, { token }));
+    }
+    const property = await updateAgencyPropertyWithPhotos(membership.agency.id, propertyId, parsed.data, photos);
+    if (!property) return { error: 'La propiedad no existe en esta inmobiliaria.' };
+    revalidatePath(`/inmobiliaria/${encodeURIComponent(agencySlug)}/panel/propiedades`);
+    revalidatePath(`/inmobiliaria/${encodeURIComponent(agencySlug)}/panel/personalizacion`);
+    revalidatePath(`/inmobiliaria/${encodeURIComponent(agencySlug)}/panel`);
+    return { property };
+  } catch {
+    return { error: 'No se pudo guardar. Revise las fotos o vuelva a intentar si hubo otro cambio simultáneo.' };
   }
 }

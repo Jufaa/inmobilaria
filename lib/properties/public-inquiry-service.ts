@@ -1,8 +1,10 @@
 import 'server-only';
 
+import {parsePropertyWhatsApp,type PropertyWhatsApp} from './property-whatsapp';
 import { prisma } from '@/lib/prisma';
 
 export type PublicPropertyDetails = {
+  whatsappContact?: PropertyWhatsApp;
   id: string;
   title: string;
   description: string;
@@ -72,13 +74,17 @@ export async function getPublicPropertyDetails(
         bedrooms: true,
         bathrooms: true,
         features: true,
-        agency: { select: { name: true } },
+        agency: { select: { name: true, presentationConfig: {select:{presentationSettings:true}} } },
         agencyId: true,
       },
     });
     if (!property) return null;
 
+    const raw=property.agency.presentationConfig?.presentationSettings;
+    const contacts=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw.propertyContacts:null;
+    const whatsappContact=contacts&&typeof contacts==='object'&&!Array.isArray(contacts)?parsePropertyWhatsApp(contacts[property.id]):null;
     return {
+      ...(whatsappContact?{whatsappContact}:{}),
       id: property.id,
       title: property.title,
       description: property.description,

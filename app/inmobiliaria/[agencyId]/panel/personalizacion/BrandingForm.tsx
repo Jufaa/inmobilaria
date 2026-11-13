@@ -1,6 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
+import { EditableForm } from '@/components/auth/WorkspaceEditPermission';
+
+import { useActionState, useEffect, useState } from 'react';
+import { PanelColorPicker } from '@/components/auth/PanelColorPicker';
+import { previewPanelBrandColor } from '@/components/auth/PanelBrandTheme';
 import { updateAgencyBranding, type BrandingActionState } from './actions';
 import styles from './branding.module.css';
 
@@ -21,14 +25,19 @@ export function BrandingForm({
 }) {
   const action = updateAgencyBranding.bind(null, agencySlug);
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [primaryColor, setPrimaryColor] = useState(initial.brandPrimaryColor ?? '');
+  useEffect(() => { setPrimaryColor(initial.brandPrimaryColor ?? ''); }, [agencySlug, initial.brandPrimaryColor]);
+  useEffect(() => () => { previewPanelBrandColor(agencySlug, initial.brandPrimaryColor ?? ''); }, [agencySlug, initial.brandPrimaryColor]);
+
+  function previewColor(value: string) {
+    setPrimaryColor(value);
+    previewPanelBrandColor(agencySlug, value);
+  }
 
   return (
-    <form action={formAction} className={styles.form}>
-      <label>
-        Color principal
-        <input name="brandPrimaryColor" type="text" inputMode="text" placeholder="#236B58" defaultValue={initial.brandPrimaryColor ?? ''} maxLength={7} />
-        <small>Usá un código hexadecimal de seis dígitos. Vacío aplica el color predeterminado.</small>
-      </label>
+    <EditableForm action={formAction} className={styles.form}>
+      <PanelColorPicker label="Color principal" name="brandPrimaryColor" value={primaryColor} onChange={previewColor} allowDefault disabled={pending} />
+      <small>Vista previa del panel. Pulse Guardar identidad para conservar el color.</small>
       <label>
         URL del logo
         <input name="logoUrl" type="url" placeholder="https://…" defaultValue={initial.logoUrl ?? ''} maxLength={2048} />
@@ -48,6 +57,6 @@ export function BrandingForm({
       </label>
       {state.message && <p className={state.status === 'error' ? styles.error : styles.success} role="status">{state.message}</p>}
       <button type="submit" disabled={pending}>{pending ? 'Guardando…' : 'Guardar identidad'}</button>
-    </form>
+    </EditableForm>
   );
 }

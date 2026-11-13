@@ -9,12 +9,14 @@ export default async function InquiriesPage({
   params: Promise<{ agencyId: string }>;
 }) {
   const { agencyId } = await params;
-  const { user, membership } = await requireAgencyDashboardAccess(agencyId);
+  const { user, membership, canEdit } = await requireAgencyDashboardAccess(agencyId);
   const inquiries = await listAgencyInquiries(membership.agency.id);
 
   return (
     <WorkspaceShell
+      canEdit={canEdit}
       agencyName={membership.agency.name}
+      brandPrimaryColor={membership.agency.brandPrimaryColor}
       agencySlug={agencyId}
       email={user.email}
       activeSection="inquiries"

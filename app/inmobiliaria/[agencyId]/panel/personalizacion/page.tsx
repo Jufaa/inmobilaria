@@ -1,27 +1,43 @@
 import { requireAgencyCollaborationAccess } from '@/lib/agency-access';
 import { WorkspaceShell } from '@/components/auth/WorkspaceShell';
+import { PersonalizationPanels } from '@/components/auth/PersonalizationPanels';
 import { AgencyPresentationSettings } from '@/components/auth/AgencyPresentationSettings';
+import { AgencyBasicAppearance } from '@/components/auth/AgencyBasicAppearance';
+import { saveAgencyBasicAppearanceAction, saveAgencyBasicBrandColorAction } from './basic-actions';
 import { BrandingForm } from './BrandingForm';
 import styles from './branding.module.css';
 import { prisma } from '@/lib/prisma';
-import { defaultPresentationSettings, parsePresentationSettings } from '@/lib/agency-presentation';
+import { defaultPresentationSettings, parsePresentationSettings, withAgencyFictionalIntro } from '@/lib/agency-presentation';
+import { listAgencyProperties } from '@/lib/properties/agency-property-service';
+import { defaultDemoConfig, parseDemoConfig } from '@/lib/property-tour-config';
+import { RealAgencyMap } from '@/components/auth/RealAgencyMap';
+import { createMapPropertyAction, updateMapPropertyAction } from '../actions';
 import { savePresentationSettingsAction } from './presentation-actions';
 
 export default async function Page({ params }: { params: Promise<{ agencyId: string }> }) {
   const { agencyId } = await params;
-  const { user, membership } = await requireAgencyCollaborationAccess(agencyId);
-  const presentationConfig = await prisma.agencyPresentationConfig.findUnique({ where: { agencyId: membership.agency.id } });
+  const { user, membership, canEdit, canManageBasic } = await requireAgencyCollaborationAccess(agencyId);
+  const [presentationConfig, properties] = await Promise.all([
+    prisma.agencyPresentationConfig.findUnique({ where: { agencyId: membership.agency.id } }),
+    listAgencyProperties(membership.agency.id),
+  ]);
+  const settings = withAgencyFictionalIntro(parsePresentationSettings(presentationConfig?.presentationSettings) ?? defaultPresentationSettings);
 
   return (
     <WorkspaceShell
+      canEdit={canEdit}
+      canManageBasic={canManageBasic}
       agencyName={membership.agency.name}
       agencySlug={agencyId}
+      brandPrimaryColor={membership.agency.brandPrimaryColor}
       email={user.email}
       activeSection="branding"
       canManageCollaboration
     >
       <main className={styles.page}>
-        <header><p>Presentación pública</p><h1>Identidad de tu inmobiliaria</h1><span>La marca se muestra en la página pública de tu inmobiliaria.</span></header>
+        <header><p>Configuración de la inmobiliaria</p><h1>Personalización</h1><span>{canEdit ? 'Elija qué quiere personalizar: identidad, mapa, inmuebles o apariencia.' : 'Personalice los colores de su inmobiliaria y de las propiedades.'}</span></header>
+        {!canEdit ? <AgencyBasicAppearance agencySlug={agencyId} brandPrimaryColor={membership.agency.brandPrimaryColor} initialSettings={settings}
+          onSaveBrand={saveAgencyBasicBrandColorAction.bind(null, agencyId)} onSaveAppearance={saveAgencyBasicAppearanceAction.bind(null, agencyId)} /> : <PersonalizationPanels identity={
         <BrandingForm
           agencySlug={agencyId}
           initial={{
@@ -32,11 +48,16 @@ export default async function Page({ params }: { params: Promise<{ agencyId: str
             welcomeVideoDescription: membership.agency.welcomeVideoDescription,
           }}
         />
-        <AgencyPresentationSettings
+        } presentation={<AgencyPresentationSettings
           agencyId={membership.agency.id}
-          initialSettings={parsePresentationSettings(presentationConfig?.presentationSettings) ?? defaultPresentationSettings}
+          config={parseDemoConfig(presentationConfig?.demoTourConfig)??defaultDemoConfig}
+          realProperties={properties}
+          propertyEditor={<RealAgencyMap agencySlug={agencyId} agencyId={membership.agency.id} agencyName={membership.agency.name}
+            properties={properties} settings={settings} photosEnabled={Boolean(process.env.BLOB_READ_WRITE_TOKEN)}
+            onCreate={createMapPropertyAction.bind(null, agencyId)} onUpdate={updateMapPropertyAction.bind(null, agencyId)} canCustomize={canEdit} embedded />}
+          initialSettings={settings}
           onPersist={savePresentationSettingsAction.bind(null, agencyId)}
-        />
+        />} />}
       </main>
     </WorkspaceShell>
   );

@@ -32,10 +32,14 @@ async function requireAgencyAccess(slug: string, membershipRoles: ('OWNER' | 'AD
     prisma.user.findUnique({ where: { id: user.id }, select: { platformRole: true } }),
   ]);
 
-  if (membership) return { user, membership };
+  const canEdit = account?.platformRole === 'OWNER';
+  if (membership) {
+    const canManageCatalogue=canEdit||['OWNER','ADMIN'].includes(membership.role);
+    return { user, membership, canEdit, canManageCatalogue, canManageBasic:canManageCatalogue };
+  }
   if (account?.platformRole === 'OWNER') {
     const agency = await prisma.agency.findUnique({ where: { slug } });
-    if (agency) return { user, membership: { role: 'OWNER' as const, agency } };
+    if (agency) return { user, membership: { role: 'OWNER' as const, agency }, canEdit: true, canManageCatalogue:true, canManageBasic:true };
   }
   redirect('/workspace');
 }
@@ -50,4 +54,31 @@ export async function requireAgencyCollaborationAccess(slug: string) {
 
 export async function requireAgencyFinanceAccess(slug: string) {
   return requireAgencyAccess(slug, ['OWNER', 'ADMIN']);
+}
+
+export async function getPlatformEditPermission(): Promise<boolean> {
+  const session = await auth();
+  if (!session?.user?.id) return false;
+  const account = await prisma.user.findUnique({ where: { id: session.user.id }, select: { platformRole: true } });
+  return account?.platformRole === 'OWNER';
+}
+
+export async function requireAgencyPlatformEditAccess(slug: string) {
+  const user = await requireSignedInUser();
+  const account = await prisma.user.findUnique({ where: { id: user.id }, select: { platformRole: true } });
+  if (account?.platformRole !== 'OWNER') redirect('/workspace');
+  const agency = await prisma.agency.findUnique({ where: { slug } });
+  if (!agency) redirect('/workspace');
+  return { user, membership: { role: 'OWNER' as const, agency }, canEdit: true, canManageCatalogue:true, canManageBasic:true };
+}
+
+export async function requireAgencyPropertyContactAccess(slug: string) {
+  return requireAgencyAccess(slug, ['OWNER', 'ADMIN']);
+}
+
+export async function requireAgencyCatalogueEditAccess(slug:string) {
+  return requireAgencyAccess(slug, ['OWNER','ADMIN']);
+}
+export async function requireAgencyBasicEditAccess(slug:string) {
+  return requireAgencyAccess(slug, ['OWNER','ADMIN']);
 }

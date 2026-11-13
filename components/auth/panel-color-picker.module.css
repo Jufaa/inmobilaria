@@ -1,0 +1,35 @@
+.picker {
+  display: grid;
+  min-width: 0;
+  gap: .75rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--panel-border, #7d9586);
+  border-radius: 12px;
+  color: var(--panel-text, #18372a);
+  background: var(--panel-surface, #ffffff);
+}
+.legend { padding: 0 .35rem; font-size: var(--type-sm, .875rem); font-weight: 650; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: .5rem; }
+.picker .swatch {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--panel-border, #7d9586);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.picker .swatch[aria-pressed='true'] { outline: 3px solid var(--panel-focus, #276740); outline-offset: 2px; }
+.check { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #18372a; background: #ffffff; font-weight: 800; }
+.custom { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.picker .customLabel { display: inline; color: var(--panel-text, #18372a); font-size: var(--type-sm, .875rem); font-weight: 600; }
+.picker .native { width: 56px; min-height: 44px; height: 44px; padding: 3px; border: 1px solid var(--panel-border, #7d9586); border-radius: 8px; background: var(--panel-input, #ffffff); cursor: pointer; }
+.readout { color: var(--panel-muted, #425b50); font-size: var(--type-sm, .875rem); overflow-wrap: anywhere; }
+.picker .reset { justify-self: start; min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--panel-border, #7d9586); border-radius: 8px; background: var(--panel-soft, #e8f0eb); color: var(--panel-text, #18372a); font: inherit; font-size: var(--type-sm, .875rem); cursor: pointer; }
+.picker button:focus-visible, .picker input:focus-visible { outline: 3px solid var(--panel-focus, #276740); outline-offset: 3px; }
+.picker button:disabled, .picker input:disabled { cursor: not-allowed; opacity: .6; }
+@media (max-width: 480px) { .picker { padding: .75rem; } .readout { flex-basis: 100%; } }

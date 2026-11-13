@@ -1,5 +1,7 @@
 'use client';
 
+import { EditableForm } from './WorkspaceEditPermission';
+
 import { useActionState } from 'react';
 import {
   assignPropertyZoneAction,
@@ -31,7 +33,7 @@ function Feedback({ state }: { state: ZoneActionState }) {
 function ZoneForm({ slug }: { slug: string }) {
   const action = createZoneAction.bind(null, slug);
   const [state, formAction, pending] = useActionState(action, initial);
-  return <form action={formAction} className={styles.form}>
+  return <EditableForm action={formAction} className={styles.form}>
     <h2>Agregar barrio o zona</h2>
     <div className={styles.fields}>
       <label>Nombre<input name="name" required minLength={2} maxLength={120} /></label>
@@ -43,7 +45,7 @@ function ZoneForm({ slug }: { slug: string }) {
     <p className={styles.hint}>Si no hay un límite geográfico confirmado, dejalo vacío: el barrio igual queda disponible como filtro de lista.</p>
     <Feedback state={state} />
     <button disabled={pending}>{pending ? 'Guardando…' : 'Guardar barrio'}</button>
-  </form>;
+  </EditableForm>;
 }
 
 function EditZoneForm({ slug, zone }: { slug: string; zone: Zone }) {
@@ -51,7 +53,7 @@ function EditZoneForm({ slug, zone }: { slug: string; zone: Zone }) {
   const [state, formAction, pending] = useActionState(action, initial);
   return <details className={styles.edit}>
     <summary>Editar zona</summary>
-    <form action={formAction} className={styles.editForm}>
+    <EditableForm action={formAction} className={styles.editForm}>
       <input type="hidden" name="zoneId" value={zone.id} />
       <label>Nombre<input name="name" required minLength={2} maxLength={120} defaultValue={zone.name} /></label>
       <label>Ciudad<input name="city" maxLength={120} defaultValue={zone.city} /></label>
@@ -60,14 +62,14 @@ function EditZoneForm({ slug, zone }: { slug: string; zone: Zone }) {
       <label className={styles.wide}>Límite GeoJSON (opcional)<textarea name="geometry" rows={3} maxLength={100000} defaultValue={zone.geometry ? JSON.stringify(zone.geometry) : ''} /></label>
       <Feedback state={state} />
       <button disabled={pending}>{pending ? 'Guardando…' : 'Guardar cambios'}</button>
-    </form>
+    </EditableForm>
   </details>;
 }
 
 function PointForm({ slug, zones }: { slug: string; zones: Zone[] }) {
   const action = createPointOfInterestAction.bind(null, slug);
   const [state, formAction, pending] = useActionState(action, initial);
-  return <form action={formAction} className={styles.form}>
+  return <EditableForm action={formAction} className={styles.form}>
     <h2>Agregar punto de interés</h2>
     <div className={styles.fields}>
       <label>Nombre<input name="name" required minLength={2} maxLength={120} /></label>
@@ -79,13 +81,13 @@ function PointForm({ slug, zones }: { slug: string; zones: Zone[] }) {
     </div>
     <Feedback state={state} />
     <button disabled={pending}>{pending ? 'Guardando…' : 'Guardar punto'}</button>
-  </form>;
+  </EditableForm>;
 }
 
 function PropertyZoneForm({ slug, property, zones }: { slug: string; property: Property; zones: Zone[] }) {
   const action = assignPropertyZoneAction.bind(null, slug);
   const [state, formAction, pending] = useActionState(action, initial);
-  return <form className={styles.assignment} action={formAction}>
+  return <EditableForm className={styles.assignment} action={formAction}>
     <input type="hidden" name="propertyId" value={property.id} />
     <span>{property.title} <small>({property.neighborhood})</small></span>
     <select name="zoneId" defaultValue={property.zoneId ?? ''} aria-label={`Barrio para ${property.title}`}>
@@ -93,7 +95,7 @@ function PropertyZoneForm({ slug, property, zones }: { slug: string; property: P
     </select>
     <button disabled={pending}>{pending ? 'Guardando…' : 'Asignar'}</button>
     <Feedback state={state} />
-  </form>;
+  </EditableForm>;
 }
 
 function EditPointForm({ slug, point, zones }: { slug: string; point: Point; zones: Zone[] }) {
@@ -101,7 +103,7 @@ function EditPointForm({ slug, point, zones }: { slug: string; point: Point; zon
   const [state, formAction, pending] = useActionState(action, initial);
   return <details className={styles.edit}>
     <summary>Editar punto</summary>
-    <form action={formAction} className={styles.editForm}>
+    <EditableForm action={formAction} className={styles.editForm}>
       <input type="hidden" name="pointId" value={point.id} />
       <label>Nombre<input name="name" required minLength={2} maxLength={120} defaultValue={point.name} /></label>
       <label>Categoría<select name="category" defaultValue={point.category}>{pointOfInterestCategories.map((category) => <option key={category} value={category}>{categoryLabels[category]}</option>)}</select></label>
@@ -111,7 +113,7 @@ function EditPointForm({ slug, point, zones }: { slug: string; point: Point; zon
       <label className={styles.wide}>Descripción<input name="description" maxLength={500} defaultValue={point.description ?? ''} /></label>
       <Feedback state={state} />
       <button disabled={pending}>{pending ? 'Guardando…' : 'Guardar cambios'}</button>
-    </form>
+    </EditableForm>
   </details>;
 }
 
@@ -127,11 +129,11 @@ export function ZoneManager({ slug, zones, properties, points }: { slug: string;
     </section>
     <section className={styles.section}><h2>Zonas guardadas</h2>{zones.length ? <div className={styles.cards}>{zones.map((zone) => <article className={styles.card} key={zone.id}>
       <div><h3>{zone.name}</h3><p>{zone.city} · {zone.geometry ? 'Límite cargado' : 'Sin límite geográfico'}</p><EditZoneForm slug={slug} zone={zone} /></div>
-      <form action={deleteZone}><input type="hidden" name="zoneId" value={zone.id} /><button className={styles.danger}>Eliminar zona</button></form>
+      <EditableForm action={deleteZone}><input type="hidden" name="zoneId" value={zone.id} /><button className={styles.danger}>Eliminar zona</button></EditableForm>
     </article>)}</div> : <p>Aún no se agregaron zonas.</p>}</section>
     <section className={styles.section}><h2>Puntos de interés</h2>{points.length ? <div className={styles.cards}>{points.map((point) => <article className={styles.card} key={point.id}>
       <div><h3>{point.name}</h3><p>{categoryLabels[point.category as keyof typeof categoryLabels] ?? 'Otro'} · {point.zone?.name ?? 'Toda la ciudad'}</p><EditPointForm slug={slug} point={point} zones={zones} /></div>
-      <form action={deletePoint}><input type="hidden" name="pointId" value={point.id} /><button className={styles.danger}>Eliminar punto</button></form>
+      <EditableForm action={deletePoint}><input type="hidden" name="pointId" value={point.id} /><button className={styles.danger}>Eliminar punto</button></EditableForm>
     </article>)}</div> : <p>Aún no se agregaron puntos de interés.</p>}</section>
   </main>;
 }

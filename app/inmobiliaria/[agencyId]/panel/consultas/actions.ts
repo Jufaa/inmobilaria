@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAgencyDashboardAccess } from '@/lib/agency-access';
+import { requireAgencyPlatformEditAccess } from '@/lib/agency-access';
 import {
   inquiryStatuses,
   updateAgencyInquiryStatus,
@@ -14,7 +14,7 @@ export async function updateInquiryStatusAction(
   _previousState: InquiryStatusActionState,
   formData: FormData,
 ): Promise<InquiryStatusActionState> {
-  const { membership } = await requireAgencyDashboardAccess(agencySlug);
+  const { membership } = await requireAgencyPlatformEditAccess(agencySlug);
   const inquiryId = String(formData.get('inquiryId') ?? '').trim();
   const status = String(formData.get('status') ?? '').trim();
   if (!inquiryId || inquiryId.length > 64) {

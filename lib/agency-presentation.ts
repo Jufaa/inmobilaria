@@ -1,4 +1,6 @@
+import { parsePropertyContacts, type PropertyWhatsApp } from './properties/property-whatsapp.ts';
 import type { MapBounds } from './zones.ts';
+import { parseExplorerSettings, type ExplorerSettings } from './presentation-explorer.ts';
 
 export type PresentationPoint = { id: string; name: string; latitude: number; longitude: number; color: string };
 export type PresentationMapStyle = {
@@ -6,6 +8,8 @@ export type PresentationMapStyle = {
   accentColor: string; landColor: string; buildingColor: string; waterColor: string;
 };
 export type PresentationSettings = {
+  propertyContacts?: Record<string,PropertyWhatsApp>;
+  explorer?: ExplorerSettings;
   version: 1;
   intro: { enabled: boolean; videoUrl: string };
   map: PresentationMapStyle;
@@ -72,7 +76,13 @@ export function parsePresentationSettings(value: unknown): PresentationSettings 
       || !coordinate(point.latitude, 90) || !coordinate(point.longitude, 180) || !color(point.color)) return null;
     points.push({ id: point.id, name: point.name.trim(), latitude: point.latitude, longitude: point.longitude, color: point.color });
   }
+  const propertyContacts=value.propertyContacts===undefined?undefined:parsePropertyContacts(value.propertyContacts);
+  if(propertyContacts===null)return null;
+  const explorer = value.explorer === undefined ? undefined : parseExplorerSettings(value.explorer, media);
+  if (explorer === null) return null;
   return {
+    ...(explorer ? { explorer } : {}),
+    ...(propertyContacts ? {propertyContacts} : {}),
     version: 1, intro: { enabled: value.intro.enabled, videoUrl: value.intro.videoUrl },
     map: { mode: map.mode, artworkUrl: map.artworkUrl as string,
       accentColor: map.accentColor as string, landColor: map.landColor as string, buildingColor: map.buildingColor as string, waterColor: map.waterColor as string,
@@ -102,4 +112,11 @@ export function savePresentationSettings(storage: Pick<Storage, 'setItem'>, agen
     storage.setItem(presentationStorageKey(agencyId), serialized);
     return { settings, error: null };
   } catch { return { settings: null, error: 'No se pudo guardar en este navegador. Los ajustes anteriores no se modificaron.' }; }
+}
+
+// Upgrade only the previous built-in sample; custom URLs and new saved opt-outs remain intact.
+export function withAgencyFictionalIntro(settings: PresentationSettings): PresentationSettings {
+  return settings.intro.videoUrl === '/demo-assets/tours/agency-intro-sample.mp4'
+    ? { ...settings, intro: { enabled: true, videoUrl: '/demo-assets/tours/agency-fictional-intro.mp4' } }
+    : settings;
 }

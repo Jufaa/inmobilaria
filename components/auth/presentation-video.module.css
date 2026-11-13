@@ -1,5 +1,9 @@
 .gate { position: fixed; inset: 0; width: 100vw; max-width: none; height: 100dvh; max-height: 100dvh; padding: 0; margin: 0; border: 0; background: #12271f; color: #fff; overflow: hidden; }
 .gate::backdrop { background: #10251dcc; }
+.integrated .video { object-fit: cover; }
+.integrated .header { top: auto; bottom: 100px; }
+.integrated .header h1 { font-size: clamp(24px, 4vw, 48px); }
+.integrated .actions { bottom: 24px; }
 .video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #0b1712; }
 .shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(#06150bc9,transparent 40%,transparent 68%,#06150bd9); }
 .header { position: absolute; top: 30px; left: 4vw; right: 4vw; pointer-events: none; }

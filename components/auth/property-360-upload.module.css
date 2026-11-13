@@ -1,0 +1,63 @@
+.root {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid var(--panel-border, currentColor);
+  border-radius: 0.75rem;
+  min-width: 0;
+}
+
+.heading,
+.hint {
+  margin: 0;
+}
+
+.hint {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.controls button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.controls button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.controls button:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+.fileInput {
+  display: none;
+}
+
+.preview {
+  height: 300px;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+
+.preview > div {
+  height: 100%;
+}
+
+.error {
+  margin: 0;
+  font-weight: 600;
+}

@@ -1,5 +1,7 @@
 'use client';
 
+import { EditableForm } from './WorkspaceEditPermission';
+
 import { useActionState } from 'react';
 import {
   endConnectionAction,
@@ -52,12 +54,12 @@ function ActionForm({
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   return (
-    <form action={formAction} className={styles.form}>
+    <EditableForm action={formAction} className={styles.form}>
       {Object.entries(hidden).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
       {children}
       <Feedback state={state} />
       {submitLabel && <button className={styles.primary} type="submit" disabled={pending}>{pending ? 'Procesando…' : submitLabel}</button>}
-    </form>
+    </EditableForm>
   );
 }
 

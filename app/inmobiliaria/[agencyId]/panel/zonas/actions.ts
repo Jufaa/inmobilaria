@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAgencyDashboardAccess } from '@/lib/agency-access';
+import { requireAgencyPlatformEditAccess } from '@/lib/agency-access';
 import {
   assignAgencyPropertyZone,
   createAgencyPointOfInterest,
@@ -59,7 +59,7 @@ function refresh(slug: string) {
 }
 
 export async function createZoneAction(slug: string, _state: ZoneActionState, data: FormData): Promise<ZoneActionState> {
-  const { membership } = await requireAgencyDashboardAccess(slug);
+  const { membership } = await requireAgencyPlatformEditAccess(slug);
   const name = value(data, 'name');
   const city = value(data, 'city') || 'Río Cuarto';
   const coords = coordinates(data);
@@ -83,7 +83,7 @@ export async function createZoneAction(slug: string, _state: ZoneActionState, da
 }
 
 export async function updateZoneAction(slug: string, _state: ZoneActionState, data: FormData): Promise<ZoneActionState> {
-  const { membership } = await requireAgencyDashboardAccess(slug);
+  const { membership } = await requireAgencyPlatformEditAccess(slug);
   const zoneId = value(data, 'zoneId');
   const name = value(data, 'name');
   const city = value(data, 'city') || 'Río Cuarto';
@@ -106,7 +106,7 @@ export async function updateZoneAction(slug: string, _state: ZoneActionState, da
 }
 
 export async function createPointOfInterestAction(slug: string, _state: ZoneActionState, data: FormData): Promise<ZoneActionState> {
-  const { membership } = await requireAgencyDashboardAccess(slug);
+  const { membership } = await requireAgencyPlatformEditAccess(slug);
   const name = value(data, 'name');
   const zoneId = value(data, 'zoneId') || null;
   const category = value(data, 'category');
@@ -131,7 +131,7 @@ export async function createPointOfInterestAction(slug: string, _state: ZoneActi
 }
 
 export async function updatePointOfInterestAction(slug: string, _state: ZoneActionState, data: FormData): Promise<ZoneActionState> {
-  const { membership } = await requireAgencyDashboardAccess(slug);
+  const { membership } = await requireAgencyPlatformEditAccess(slug);
   const pointId = value(data, 'pointId');
   const name = value(data, 'name');
   const zoneId = value(data, 'zoneId') || null;
@@ -155,7 +155,7 @@ export async function updatePointOfInterestAction(slug: string, _state: ZoneActi
 }
 
 export async function assignPropertyZoneAction(slug: string, _state: ZoneActionState, data: FormData): Promise<ZoneActionState> {
-  const { membership } = await requireAgencyDashboardAccess(slug);
+  const { membership } = await requireAgencyPlatformEditAccess(slug);
   const propertyId = value(data, 'propertyId');
   const zoneId = value(data, 'zoneId') || null;
   if (!propertyId || propertyId.length > 64 || (zoneId && zoneId.length > 64)) return { error: 'Elegí una propiedad y un barrio válidos.' };
@@ -170,14 +170,14 @@ export async function assignPropertyZoneAction(slug: string, _state: ZoneActionS
 }
 
 export async function deleteZoneAction(slug: string, data: FormData) {
-  const { membership } = await requireAgencyDashboardAccess(slug);
+  const { membership } = await requireAgencyPlatformEditAccess(slug);
   const zoneId = value(data, 'zoneId');
   if (zoneId && zoneId.length <= 64) await deleteAgencyZone(membership.agency.id, zoneId);
   refresh(slug);
 }
 
 export async function deletePointOfInterestAction(slug: string, data: FormData) {
-  const { membership } = await requireAgencyDashboardAccess(slug);
+  const { membership } = await requireAgencyPlatformEditAccess(slug);
   const pointId = value(data, 'pointId');
   if (pointId && pointId.length <= 64) await deleteAgencyPointOfInterest(membership.agency.id, pointId);
   refresh(slug);

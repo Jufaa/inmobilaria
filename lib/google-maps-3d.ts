@@ -3,12 +3,13 @@ export type Google3DMap = HTMLElement & {
   center: { lat: number; lng: number; altitude?: number }; range: number; tilt: number; heading: number;
 };
 export type Google3DLibrary = {
+  PinElement?: new (options: Record<string, unknown>) => HTMLElement;
   Map3DElement: new (options: Record<string, unknown>) => Google3DMap;
   Marker3DInteractiveElement: new (options: Record<string, unknown>) => HTMLElement;
 };
 type SDKHost = {
   document: Pick<Document, 'createElement' | 'head' | 'querySelector'>;
-  google?: { maps?: { importLibrary?: (name: string) => Promise<Google3DLibrary> } };
+  google?: { maps?: { importLibrary?: (name: string) => Promise<Partial<Google3DLibrary>> } };
   __territorioGoogle3DReady?: () => void;
   setTimeout: (callback: () => void, delay: number) => unknown;
   clearTimeout: (timer: unknown) => void;
@@ -32,10 +33,13 @@ export function createGoogleMaps3DLoader(host: SDKHost) {
       const ready = () => {
         const maps = host.google?.maps;
         if (!maps?.importLibrary) { fail(); return; }
-        maps.importLibrary('maps3d').then((library) => {
+        maps.importLibrary('maps3d').then(async (library) => {
           if (settled) return;
           if (!library.Map3DElement || !library.Marker3DInteractiveElement) { fail(); return; }
-          settled = true; cleanup(); resolve(library);
+          const markers = await maps.importLibrary!('marker').catch(() => null);
+          if (settled) return;
+          settled = true; cleanup();
+          resolve(markers?.PinElement ? { ...library, PinElement: markers.PinElement } as Google3DLibrary : library as Google3DLibrary);
         }, fail);
       };
       if (host.google?.maps?.importLibrary) { ready(); return; }

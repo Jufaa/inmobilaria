@@ -5,6 +5,8 @@ import { createRequire } from 'node:module';
 import ts from 'typescript';
 import * as configApi from '../lib/property-tour-config.ts';
 import * as areaApi from '../lib/workspace-aerial-presentation.ts';
+import * as listingsApi from '../lib/presentation-listings.ts';
+import * as explorerApi from '../lib/presentation-explorer.ts';
 import { defaultPresentationSettings } from '../lib/agency-presentation.ts';
 import { createTourState } from '../lib/property-tour-demo.ts';
 const require = createRequire(import.meta.url);
@@ -21,6 +23,9 @@ test('actual aerial wrapper always plays the property drone before entry, honors
   if(id==='@/components/GoogleAerialArea')return{GoogleAerialArea};
   if(id==='@/components/PropertyTourDemo')return{PropertyTourDemo};
   if(id==='@/components/TourDemoEditor')return{TourDemoEditor};
+  if(id==='@/lib/presentation-listings')return listingsApi;
+  if(id==='@/lib/presentation-explorer')return explorerApi;
+  if(id==='./PresentationFilters')return{PresentationFilters:()=>null};
   if(id==='@/lib/property-tour-config')return configApi;
   if(id==='@/lib/workspace-aerial-presentation')return areaApi;
   if(id==='@/lib/property-tour-config')return configApi;
@@ -61,6 +66,9 @@ test('aerial property tours and their editor use the persisted agency template a
   if(id==='@/components/GoogleAerialArea')return{GoogleAerialArea};
   if(id==='@/components/PropertyTourDemo')return{PropertyTourDemo};
   if(id==='@/components/TourDemoEditor')return{TourDemoEditor};
+  if(id==='@/lib/presentation-listings')return listingsApi;
+  if(id==='@/lib/presentation-explorer')return explorerApi;
+  if(id==='./PresentationFilters')return{PresentationFilters:()=>null};
   if(id==='@/lib/property-tour-config')return configApi;
   if(id==='@/lib/workspace-aerial-presentation')return areaApi;
   if(id.endsWith('.module.css'))return{__esModule:true,default:new Proxy({},{get:(_,key)=>String(key)})};
@@ -69,7 +77,7 @@ test('aerial property tours and their editor use the persisted agency template a
  const initialConfig=structuredClone(configApi.defaultDemoConfig);
  initialConfig.properties[0].interiorVideo='/demo-assets/tours/interior-02.mp4';
  let parentSaved;
- const props={zone:{id:'centro',name:'Centro',latitude:-33.12,longitude:-64.35},initialConfig,persistDemoConfig:async value=>{persisted=value;return{config:value,error:null};},onConfigSaved:value=>{parentSaved=value;},onClose(){}};
+ const props={canEdit:true,zone:{id:'centro',name:'Centro',latitude:-33.12,longitude:-64.35},initialConfig,persistDemoConfig:async value=>{persisted=value;return{config:value,error:null};},onConfigSaved:value=>{parentSaved=value;},onClose(){}};
  const render=()=>{cursor=0;return exports.WorkspaceAerialExperience(props);};
  const originalDocument=globalThis.document,originalElement=globalThis.HTMLElement;
  globalThis.document={activeElement:null};globalThis.HTMLElement=class{};
@@ -87,16 +95,22 @@ test('aerial property tours and their editor use the persisted agency template a
 
 test('private personalization preserves branding/access and adds the agency-scoped presentation editor',async()=>{
  const code=compile('../app/inmobiliaria/[agencyId]/panel/personalizacion/page.tsx');
- function WorkspaceShell(){} function BrandingForm(){} function AgencyPresentationSettings(){}
+ function WorkspaceShell(){} function BrandingForm(){} function AgencyPresentationSettings(){} function PersonalizationPanels(){}
  const calls=[],exports={};
  new Function('require','exports',code)(id=>{
-  if(id==='@/lib/agency-access')return{requireAgencyCollaborationAccess:async(slug)=>{calls.push(slug);return{user:{email:'test@example.com'},membership:{agency:{id:'authorized-id',name:'Example'}}};}};
+  if(id==='@/lib/agency-access')return{requireAgencyCollaborationAccess:async(slug)=>{calls.push(slug);return{canEdit:true,user:{email:'test@example.com'},membership:{agency:{id:'authorized-id',name:'Example'}}};}};
   if(id==='@/lib/prisma')return{prisma:{agencyPresentationConfig:{findUnique:async()=>null}}};
-  if(id==='@/lib/agency-presentation')return{defaultPresentationSettings,parsePresentationSettings:value=>value??null};
+  if(id==='@/lib/agency-presentation')return{defaultPresentationSettings,parsePresentationSettings:value=>value??null,withAgencyFictionalIntro:value=>value};
   if(id==='@/lib/property-tour-config')return configApi;
+  if(id==='@/lib/properties/agency-property-service')return {listAgencyProperties:async id=>{assert.equal(id,'authorized-id');return [];}};
+  if(id==='@/components/auth/RealAgencyMap')return {RealAgencyMap:()=>null};
+  if(id==='../actions')return {updateMapPropertyAction:async()=>({}),createMapPropertyAction:async()=>({})};
+  if(id==='@/components/auth/AgencyBasicAppearance')return{AgencyBasicAppearance:()=>null};
+  if(id==='./basic-actions')return{saveAgencyBasicAppearanceAction:async()=>({}),saveAgencyBasicBrandColorAction:async()=>({})};
   if(id==='./presentation-actions')return{savePresentationSettingsAction:async()=>({settings:null,error:null})};
   if(id==='@/components/auth/WorkspaceShell')return{WorkspaceShell};
   if(id==='@/components/auth/AgencyPresentationSettings')return{AgencyPresentationSettings};
+  if(id==='@/components/auth/PersonalizationPanels')return{PersonalizationPanels};
   if(id==='./BrandingForm')return{BrandingForm};
   if(id.endsWith('.module.css'))return{__esModule:true,default:{}};
   return require(id);
@@ -104,8 +118,10 @@ test('private personalization preserves branding/access and adds the agency-scop
  const page=await exports.default({params:Promise.resolve({agencyId:'requested-slug'})});
  assert.deepEqual(calls,['requested-slug']);
  assert.equal(page.type,WorkspaceShell);
- assert.equal(nodes(page,n=>n.type===BrandingForm).length,1);
- assert.equal(nodes(page,n=>n.type===AgencyPresentationSettings)[0].props.agencyId,'authorized-id');
+ const panels=nodes(page,n=>n.type===PersonalizationPanels);
+ assert.equal(panels.length,1);
+ assert.equal(nodes(panels[0].props.identity,n=>n.type===BrandingForm).length,1);
+ assert.equal(nodes(panels[0].props.presentation,n=>n.type===AgencyPresentationSettings)[0].props.agencyId,'authorized-id');
 });
 
 test('the institutional sample is a real 24-second fast-start MP4, not a missing placeholder',()=>{

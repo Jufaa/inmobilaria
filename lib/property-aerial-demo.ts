@@ -5,6 +5,7 @@ import type { MapBounds, Zone } from './zones.ts';
 export type AerialProperty = {
   id: string; title: string; kind: string; latitude: number; longitude: number;
   price: string; tour: TourProperty;
+  amount?: number; currency?: 'USD' | 'ARS'; garage?: boolean | null; offer?: boolean;
 };
 export type DemoArea = { id: string; label: string; zone: Zone; properties: AerialProperty[] };
 const samples = [
@@ -28,7 +29,7 @@ export function buildDemoAreas(config: DemoConfig): DemoArea[] {
       return { id, title, kind: sample.kind,
         latitude: Math.max(-89.999, Math.min(89.999, template.latitude + sample.lat)),
         longitude: Math.max(-179.999, Math.min(179.999, template.longitude + sample.lng)),
-        price: tours[index].price,
+        price: tours[index].price, amount: template.price, currency: template.currency, garage: null,
         tour: { ...tours[index], id, title, area: position === 0 ? tours[index].area : sample.area, bedrooms: position === 0 ? tours[index].bedrooms : sample.bedrooms } };
     }),
   }));

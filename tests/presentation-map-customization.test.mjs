@@ -7,6 +7,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import ts from 'typescript';
 import { zones } from '../lib/zones.ts';
 import { defaultPresentationSettings } from '../lib/agency-presentation.ts';
+import * as panelColors from '../lib/panel-colors.ts';
+import * as rectangleApi from '../lib/map-rectangle-selection.ts';
 
 const require = createRequire(import.meta.url);
 const transpile = (path) => ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
@@ -28,26 +30,42 @@ test('CityMap accepts an overview without changing legacy defaults and keeps exp
   const maps = [];
   const createdMarkers = [];
   class FakeMap {
-    constructor(options) { this.options = options; this.handlers = new globalThis.Map(); this.sources = new globalThis.Map(); this.fitCalls = []; this.configCalls = []; maps.push(this); }
+    constructor(options) {
+      this.options = options; this.handlers = new globalThis.Map(); this.sources = new globalThis.Map(); this.fitCalls = []; this.configCalls = [];
+      for (const name of ['dragPan', 'boxZoom', 'dragRotate', 'scrollZoom', 'doubleClickZoom', 'keyboard', 'touchZoomRotate', 'touchPitch']) {
+        this[name] = { enabled: true, isEnabled() { return this.enabled; }, enable: () => { assert.equal(this.removed, undefined, 'controls restore before SDK disposal'); this[name].enabled = true; }, disable: () => { assert.equal(this.removed, undefined, 'no SDK control access after disposal'); this[name].enabled = false; } };
+      }
+      maps.push(this);
+    }
     on(name, layerOrHandler, handler) { const fn = handler ?? layerOrHandler; this.handlers.set(`${name}:${handler ? layerOrHandler : ''}`, fn); return this; }
-    off() { return this; }
+    off(name, layerOrHandler, handler) { const key = `${name}:${handler ? layerOrHandler : ''}`; if (this.handlers.get(key) === (handler ?? layerOrHandler)) this.handlers.delete(key); return this; }
     emit(name) { this.handlers.get(`${name}:`)?.(); }
     addControl() {}
     getPitch() { return this.options.pitch; }
     getBearing() { return this.options.bearing; }
-    getCanvas() { return { clientWidth: 1000, clientHeight: 700, style: {} }; }
+    getCanvas() {
+      if (this.removed) return undefined;
+      if (!this.canvas) {
+        const parent = document.createElement('div'); parent.getBoundingClientRect = () => ({ left: 80, top: 180 });
+        this.canvas = document.createElement('canvas');
+        Object.assign(this.canvas, { clientWidth: 1000, clientHeight: 700, ownerDocument: document, parentElement: parent, getBoundingClientRect: () => ({ left: 100, top: 200, width: 1000, height: 700 }), setPointerCapture() {}, hasPointerCapture: () => true, releasePointerCapture() {} });
+      }
+      return this.canvas;
+    }
     getSource(id) { return this.sources.get(id); }
-    getLayer() { return true; }
+    getLayer() { if (this.removed) throw Error('style was destroyed'); return true; }
     addSource(id, options) { this.sources.set(id, { ...options, setData(data) { this.data = data; }, getClusterExpansionZoom() {} }); }
     addLayer() {}
     setConfigProperty(...args) { this.configCalls.push(args); }
     setPaintProperty(...args) { this.paintCalls ??= []; this.paintCalls.push(args); }
     isSourceLoaded() { return true; }
-    querySourceFeatures() { return []; }
+    querySourceFeatures() { return this.displayFeatures ?? []; }
     project() { return { x: 0, y: 0 }; }
     fitBounds(...args) { this.fitCalls.push(args); }
     resize() {}
-    remove() {}
+    remove() { this.removed = true; this.emit('remove'); }
+    unproject([x, y]) { assert.equal(this.removed, undefined); return { lng: -64.5 + x / 10000, lat: -33 - y / 10000 }; }
+    getCenter() { return { lng: this.options.center[0], lat: this.options.center[1] }; }
     getBounds() { return { getWest: () => 0, getEast: () => 1, getSouth: () => 0, getNorth: () => 1 }; }
     easeTo() {}
     flyTo() {}
@@ -64,8 +82,10 @@ test('CityMap accepts an overview without changing legacy defaults and keeps exp
   const exports = {};
   new Function('require', 'exports', code)(id => {
     if (id === 'react') return hooks;
+    if (id === '@/lib/panel-colors') return panelColors;
     if (id === 'mapbox-gl') return mapbox;
     if (id === '@/lib/properties') return { formatPrice: value => String(value) };
+    if (id === '@/lib/map-rectangle-selection') return rectangleApi;
     if (id.endsWith('.module.css') || id === 'lucide-react') return new Proxy({}, { get: () => () => null });
     return require(id);
   }, exports);
@@ -83,7 +103,7 @@ test('CityMap accepts an overview without changing legacy defaults and keeps exp
   globalThis.requestAnimationFrame = callback => { callback(); return 1; };
   globalThis.cancelAnimationFrame = () => {};
   globalThis.window = { matchMedia: () => ({ matches: true }) };
-  globalThis.document = { addEventListener() {}, removeEventListener() {}, createElement: () => ({ style: {}, attributes: {}, setAttribute(key, value) { this.attributes[key] = value; } }) };
+  globalThis.document = { handlers: {}, addEventListener(key, callback) { this.handlers[key] = callback; }, removeEventListener(key, callback) { if (this.handlers[key] === callback) delete this.handlers[key]; }, createElement: tag => ({ tagName: tag, dataset: {}, style: {}, attributes: {}, children: [], handlers: {}, classList: { toggle() {} }, append(child) { this.children.push(child); child.parentElement = this; }, remove() { this.removed = true; if (this.parentElement?.children) this.parentElement.children = this.parentElement.children.filter(child => child !== this); }, querySelector(tag) { return this.children.find(child => child.tagName === tag); }, addEventListener(key, callback) { this.handlers[key] = callback; }, removeEventListener(key, callback) { if (this.handlers[key] === callback) delete this.handlers[key]; }, removeAttribute(key) { delete this.attributes[key]; }, setAttribute(key, value) { this.attributes[key] = value; } }) };
   try {
     render(base);
     maps[0].emit('load');
@@ -93,7 +113,8 @@ test('CityMap accepts an overview without changing legacy defaults and keeps exp
     assert.equal(legacy.zoom, 15.4);
     assert.equal(legacy.pitch, 45);
     assert.equal(maps[0].fitCalls.length, 1, 'legacy areas still auto-fit');
-    slots[16] = 1; // Recreate the map as a retry would, with overview enabled at initialization.
+    assert.equal(maps[0].getSource('property-catalog').cluster, true, 'normal explorer retains clustering');
+    slots[17] = 1; // Recreate the map as a retry would, with overview enabled at initialization.
     render({ ...base, overview: true });
     maps[1].emit('load');
     render({ ...base, overview: true });
@@ -101,6 +122,7 @@ test('CityMap accepts an overview without changing legacy defaults and keeps exp
     assert.equal(maps[1].options.zoom, 12.2);
     assert.equal(maps[1].options.pitch, 0);
     assert.equal(maps[1].fitCalls.length, 0, 'overview suppresses only its initial area fit');
+    assert.equal(maps[1].getSource('property-catalog').cluster, false, 'presentation overview shows individual properties instead of numeric groups');
     render({ ...base, overview: true, zoneRevision: 2 });
     assert.equal(maps[1].fitCalls.length, 1, 'a later explicit zone revision fits the selected area');
     const appearance = { ...defaultPresentationSettings.map, accentColor: '#aabbcc', landColor: '#112233', buildingColor: '#223344', waterColor: '#334455' };
@@ -114,8 +136,68 @@ test('CityMap accepts an overview without changing legacy defaults and keeps exp
     assert.equal(createdMarkers[0].element.style.backgroundColor, '#008800');
     render(styled);
     assert.equal(createdMarkers.length, 1, 'stable point inputs do not duplicate markers');
+    const chosenPoints = [], pickedPositions = [];
+    render({ ...styled, editing: true, onPointSelect: id => chosenPoints.push(id) });
+    assert.equal(createdMarkers[0].element.attributes.role, 'button');
+    createdMarkers[0].element.handlers.click({ stopPropagation() {} });
+    assert.deepEqual(chosenPoints, ['park']);
+    render({ ...styled, editing: true, onMapPick: position => pickedPositions.push(position) });
+    maps[1].handlers.get('click:')({ lngLat: { lng: -64.37, lat: -33.14 } });
+    assert.deepEqual(pickedPositions, [[-64.37, -33.14]], 'map pick forwards actual geographic coordinates');
     render({ ...styled, pointsOfInterest: [] });
     assert.equal(createdMarkers[0].removed, true, 'removed points clean up their map markers');
+    const sourceProperty = { id: 11, address: 'Casa de prueba', latitude: -33.12, longitude: -64.35, price: 99000, currency: 'USD' };
+    maps[1].displayFeatures = [{ toJSON: () => ({ geometry: { type: 'Point', coordinates: [-64.35, -33.12] }, properties: { propertyId: 11 } }) }];
+    render({ ...styled, pointsOfInterest: [], properties: [sourceProperty] });
+    const propertyButton = createdMarkers.at(-1).element.querySelector('button');
+    assert.equal(propertyButton.textContent, '99000');
+    assert.equal(propertyButton.attributes['aria-label'], 'Ver Casa de prueba, 99000', 'absence preserves legacy marker content');
+    render({ ...styled, pointsOfInterest: [], properties: [{ ...sourceProperty, showPrice: false, markerColor: '#000000' }] });
+    assert.equal(propertyButton.textContent, '●'); assert.equal(propertyButton.attributes['aria-label'], 'Ver Casa de prueba');
+    assert.equal(propertyButton.style.backgroundColor, '#000000'); assert.equal(propertyButton.style.color, '#ffffff');
+    render({ ...styled, pointsOfInterest: [], selected: 11, properties: [{ ...sourceProperty, showPrice: false, markerColor: '#ffffff' }] });
+    assert.equal(propertyButton.textContent, '✓'); assert.equal(propertyButton.style.color, '#000000');
+    const chosenProperties = [];
+    const nearby = [sourceProperty, { ...sourceProperty, id: 12, address: 'Otra casa', longitude: -64.3501 }];
+    maps[1].displayFeatures = nearby.map(property => ({ toJSON: () => ({ geometry: { type: 'Point', coordinates: [property.longitude, property.latitude] }, properties: { propertyId: property.id } }) }));
+    render({ ...styled, properties: nearby, onSelect: id => chosenProperties.push(id) });
+    const propertyMarkers = createdMarkers.filter(marker => !marker.removed && marker.element.querySelector('button'));
+    assert.equal(propertyMarkers.length, 2, 'nearby properties stay visible individually');
+    assert.equal(propertyMarkers.some(marker => marker.element.querySelector('button').className === 'map-cluster'), false);
+    for (const marker of propertyMarkers) marker.element.querySelector('button').handlers.click();
+    assert.deepEqual(chosenProperties, [11, 12]);
+    assert.equal(maps[1].getSource('property-catalog').data.features.length, 2);
+    assert.ok(createdMarkers.some(marker => !marker.removed && marker.element.textContent === 'Plaza'), 'the POI remains visible');
+    assert.equal(maps[1].getSource('search-zone').data.features.length, base.areas.length, 'zone data remain intact');
+    maps[1].displayFeatures = [];
+    const cropped = []; let duplicatePointPicks = 0;
+    maps[1].boxZoom.enabled = false;
+    const cropProps = { ...styled, editing: true, onMapPick() { duplicatePointPicks++; }, onRectangleSelect: bounds => cropped.push(bounds) };
+    render(cropProps);
+    const cropCanvas = maps[1].getCanvas();
+    assert.equal(maps[1].dragPan.enabled, false); assert.equal(maps[1].boxZoom.enabled, false);
+    assert.equal(maps[1].handlers.has('click:'), false, 'crop and point placement cannot run together');
+    const pointer = (type, x, y) => cropCanvas.handlers[type]?.({ pointerId: 1, button: 0, isPrimary: true, clientX: x, clientY: y, preventDefault() {}, stopPropagation() {} });
+    pointer('pointerdown', 140, 230); pointer('pointermove', 380, 440); assert.equal(cropped.length, 0);
+    pointer('pointerup', 380, 440);
+    assert.deepEqual(cropped, [{ west: -64.496, east: -64.472, south: -33.024, north: -33.003 }]);
+    assert.equal(duplicatePointPicks, 0);
+    render(styled); assert.equal(maps[1].dragPan.enabled, true); assert.equal(maps[1].boxZoom.enabled, false);
+    render({ ...styled, compact: true, onAreaSelect() {} });
+    const lastMap = maps.at(-1);
+    const lateEnter = lastMap.handlers.get('mouseenter:search-zone-fill');
+    const lateLeave = lastMap.handlers.get('mouseleave:search-zone-fill');
+    render(cropProps); pointer('pointerdown', 140, 230); const staleCropUp = cropCanvas.handlers.pointerup;
+    assert.doesNotThrow(() => effectCleanups.forEach(cleanup => cleanup?.()), 'leaving the route must tolerate map.remove() running before other effect cleanup');
+    assert.equal(lastMap.removed, true);
+    staleCropUp({ pointerId: 1, clientX: 380, clientY: 440 }); assert.equal(cropped.length, 1);
+    assert.equal(cropCanvas.parentElement.children.length, 0, 'unmount removes crop preview');
+    assert.doesNotThrow(() => lateEnter({ features: [] }), 'stale hover events cannot access a removed canvas');
+    assert.doesNotThrow(() => lateLeave(), 'stale leave events cannot access a removed style');
+    slots.length = 0; effects.length = 0; effectDeps.length = 0; effectCleanups.length = 0;
+    const picker = { ...base, onMapPick() {} };
+    render(picker); maps.at(-1).emit('load'); render(picker);
+    assert.doesNotThrow(() => effectCleanups.forEach(cleanup => cleanup?.()), 'armed pin placement also cleans up safely during route navigation');
   } finally {
     globalThis.ResizeObserver = undefined;
     globalThis.requestAnimationFrame = undefined;
@@ -187,6 +269,7 @@ test('Google aerial POIs are labeled separately from fictional clickable propert
   const exports = {};
   new Function('require', 'exports', code)(id => {
     if (id.endsWith('.module.css')) return { __esModule: true, default: new Proxy({}, { get: (_, key) => String(key) }) };
+    if (id === '@/lib/panel-colors') return panelColors;
     if (id === '@/lib/property-aerial-demo') return { aerialCameraForBounds: () => ({ center: {}, range: 1 }) };
     if (id === '@/lib/google-maps-3d') return { loadGoogleMaps3D: () => Promise.reject(Error()) };
     return require(id);
@@ -228,7 +311,9 @@ test('Google aerial POIs are labeled separately from fictional clickable propert
   const activeExports = {};
   new Function('require', 'exports', code)(id => {
     if (id === 'react') return hooks;
+    if (id === '@/lib/panel-colors') return panelColors;
     if (id.endsWith('.module.css')) return { __esModule: true, default: new Proxy({}, { get: (_, key) => String(key) }) };
+    if (id === '@/lib/panel-colors') return panelColors;
     if (id === '@/lib/property-aerial-demo') return { aerialCameraForBounds: () => ({ center: {}, range: 1 }) };
     if (id === '@/lib/google-maps-3d') return { loadGoogleMaps3D: async () => library };
     return require(id);

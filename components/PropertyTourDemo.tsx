@@ -6,6 +6,8 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, Bath, BedDouble, ChevronLeft, ChevronRight, Compass, Expand, LayoutGrid, MapPin, Image as ImageIcon, Play, Rotate3D, Scan, Square } from 'lucide-react';
 import { createTourState, tourProperties, updateTourState, type TourMode, type TourAction, type TourState, type TourProperty } from '@/lib/property-tour-demo';
 import styles from './property-tour-demo.module.css';
+import { PropertySummaryEditor } from './auth/PropertySummaryEditor';
+import type { PropertySummaryFields } from '@/lib/property-offers';
 import { BuildingTourEntry } from './BuildingTourEntry';
 
 const Panorama = dynamic(() => import('./Panorama'), {
@@ -47,25 +49,35 @@ function FloorPlan({ property, active, onSelect }: { property: TourProperty; act
   );
 }
 
-export function PropertyTourDemo({ initialPropertyId, properties = tourProperties, onReturn }: { initialPropertyId?: string; properties?: TourProperty[]; onReturn?: () => void } = {}) {
-  const [state, dispatch] = useReducer((current: TourState, action: TourAction) => updateTourState(current, action, properties), initialPropertyId, (id) => createTourState(id, properties));
+export function PropertyTourDemo({ initialPropertyId, properties = tourProperties, onReturn, focused = false, onSaveDetails }: { onSaveDetails?: (fields: PropertySummaryFields) => Promise<string | null>; focused?: boolean; initialPropertyId?: string; properties?: TourProperty[]; onReturn?: () => void } = {}) {
+  const [state, dispatch] = useReducer((current: TourState, action: TourAction) => updateTourState(current, action, properties), initialPropertyId, (id) => { const initial=createTourState(id, properties); return focused ? { ...initial, phase:'entering' as const } : initial; });
+  const [editingDetails,setEditingDetails]=useState(false);
+  const [motionReady,setMotionReady]=useState(false);
   const [reducedMotion, setReducedMotion] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const interiorVideo = useRef<HTMLVideoElement>(null);
   const [fullscreenError, setFullscreenError] = useState('');
   const [imageError, setImageError] = useState(false);
   const viewer = useRef<HTMLDivElement>(null);
-  const property = properties.find((item) => item.id === state.propertyId)!;
-  const scene = property.scenes[state.sceneIndex];
+  const property = properties.find((item) => item.id === state.propertyId);
+  const scene = property?.scenes[state.sceneIndex] ?? property?.scenes[0];
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => { setReducedMotion(media.matches); if (media.matches) interiorVideo.current?.pause(); };
-    update();
+    update(); setMotionReady(true);
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
   }, []);
-  useEffect(() => { setImageError(false); setVideoError(false); }, [scene.image, property.id, state.mode]);
+  useEffect(() => {
+    if (state.phase !== 'inside' || state.mode !== 'video' || reducedMotion) return;
+    const video=interiorVideo.current;
+    if (!video) return;
+    let active=true;
+    Promise.resolve(video.play()).catch(()=>{if(active)setVideoError(true);});
+    return ()=>{active=false;};
+  }, [state.phase,state.mode,property?.id,reducedMotion]);
+  useEffect(() => { setImageError(false); setVideoError(false); }, [scene?.image, property?.id, state.mode]);
 
   const expand = async () => {
     setFullscreenError('');
@@ -76,8 +88,10 @@ export function PropertyTourDemo({ initialPropertyId, properties = tourPropertie
     } catch { setFullscreenError('La pantalla completa no está disponible en este navegador.'); }
   };
 
+  if (!property || !scene) return <section className={styles.loading} role="status"><p>Esta propiedad no está disponible con los filtros actuales.</p><button type="button" onClick={onReturn ?? (()=>dispatch({type:'return'}))}>Volver a la zona</button></section>;
+  if (focused && state.phase === 'entering' && !motionReady) return <div className={styles.loading} role="status">Preparando el recorrido…</div>;
   if (state.phase !== 'inside') {
-    return <BuildingTourEntry key={`${state.propertyId}-${state.phase}`} property={property} properties={properties}
+    return <BuildingTourEntry key={`${state.propertyId}-${state.phase}`} property={property} properties={focused ? [property] : properties}
       entering={state.phase === 'entering'} reducedMotion={reducedMotion}
       onSelect={(id) => dispatch({ type: 'property', id })}
       onEntered={(id) => dispatch({ type: 'entered', id })}
@@ -92,11 +106,18 @@ export function PropertyTourDemo({ initialPropertyId, properties = tourPropertie
         <button className={styles.back} onClick={onReturn ?? (() => dispatch({ type: 'return' }))}><ArrowLeft size={16} /> {onReturn ? 'Volver a la zona' : 'Volver al edificio'}</button>
       </header>
       <div className={styles.intro}>
-        <div><span className={styles.eyebrow}>UNA NUEVA FORMA DE VISITAR</span><h1>Tu próxima historia empieza adentro.</h1></div>
-        <span className={styles.demoBadge}><span /> DEMO · {properties.length} PROPIEDADES</span>
+        <div>{!focused && <span className={styles.eyebrow}>UNA NUEVA FORMA DE VISITAR</span>}<h1>{focused ? property.title : 'Tu próxima historia empieza adentro.'}</h1></div>
+        <span className={styles.demoBadge}><span /> {focused ? 'EJEMPLO FICTICIO' : `DEMO · ${properties.length} PROPIEDADES`}</span>
       </div>
-      <div className={styles.workspace}>
-        <aside className={styles.sidebar}>
+      {focused && <section className={styles.propertySummary} aria-label="Precio y características de la propiedad">
+        <strong>{property.price}</strong><span>{property.area} m²</span><span>{property.bedrooms} dormitorios</span><span>{property.bathrooms} baños</span>
+        {(property.features??[]).map(feature=><span key={feature}>{feature}</span>)}
+        {onSaveDetails&&<button type="button" onClick={()=>setEditingDetails(true)}>Editar precio y características</button>}
+      </section>}
+      {editingDetails&&onSaveDetails&&<PropertySummaryEditor initial={{title:property.title,amount:property.amount??0,currency:property.currency??'USD',area:property.area,bedrooms:property.bedrooms,bathrooms:property.bathrooms,features:property.features??[]}}
+        onCancel={()=>setEditingDetails(false)} onSave={async fields=>{const result=await onSaveDetails(fields);if(!result)setEditingDetails(false);return result;}}/>}
+      <div className={`${styles.workspace} ${focused ? styles.focusedWorkspace : ''}`}>
+        {!focused && <aside className={styles.sidebar}>
           <div className={styles.selectionLabel}><span>Elige un espacio</span><span>01 — {String(properties.length).padStart(2, '0')}</span></div>
           <div className={styles.propertyList} aria-label="Departamentos de demostración">
             {properties.map((item, index) => (
@@ -114,7 +135,7 @@ export function PropertyTourDemo({ initialPropertyId, properties = tourPropertie
             <div className={styles.price}><small>PRECIO ILUSTRATIVO</small><strong>{property.price}</strong></div>
           </div>
           <div className={styles.sidebarNote}><Scan size={22} /><p>No solo lo mires.<br /><strong>Imagina vivirlo.</strong></p></div>
-        </aside>
+        </aside>}
         <div className={styles.experience}>
           <div className={styles.toolbar}>
             <div className={styles.modes} aria-label="Modo de visualización">
@@ -148,7 +169,7 @@ export function PropertyTourDemo({ initialPropertyId, properties = tourPropertie
                 Tu navegador no permite reproducir este video MP4.
               </video>
               <span className={styles.sceneBadge}>VIDEO INTERIOR · MATERIAL DE MUESTRA</span>
-              {videoError && <div className={styles.videoError} role="alert"><p>No se pudo cargar el video del interior.</p><button onClick={() => { setVideoError(false); interiorVideo.current?.load(); }}>Reintentar video</button><button onClick={() => dispatch({ type: 'mode', mode: 'panorama' })}>Abrir vista 360°</button></div>}
+              {videoError && <div className={styles.videoError} role="alert"><p>No se pudo cargar el video del interior.</p><button onClick={() => { setVideoError(false); const video=interiorVideo.current; if(video) void video.play().catch(()=>setVideoError(true)); }}>Reintentar video</button><button onClick={() => dispatch({ type: 'mode', mode: 'panorama' })}>Abrir vista 360°</button></div>}
             </>}
             {state.mode === 'panorama' && <div className={styles.panorama}><Panorama key={property.id} url={property.panorama} /></div>}
             {state.mode === 'plan' && <div className={styles.planView}><span className={styles.eyebrow}>CADA ESPACIO, CONECTADO</span><h3>Elige por dónde empezar.</h3><p>Selecciona un punto del plano para explorar su vista ilustrativa.</p><FloorPlan property={property} active={state.sceneIndex} onSelect={(index) => dispatch({ type: 'scene', index })} /><small>Plano esquemático, no a escala. No representa una distribución real.</small></div>}

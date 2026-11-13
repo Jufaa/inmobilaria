@@ -5,12 +5,14 @@ import { AgencyCollaborationManager } from '@/components/auth/AgencyCollaboratio
 
 export default async function Page({ params }: { params: Promise<{ agencyId: string }> }) {
   const { agencyId } = await params;
-  const { user, membership } = await requireAgencyCollaborationAccess(agencyId);
+  const { user, membership, canEdit } = await requireAgencyCollaborationAccess(agencyId);
   const data = await listAgencyCollaboration(membership.agency.id);
 
   return (
     <WorkspaceShell
+      canEdit={canEdit}
       agencyName={membership.agency.name}
+      brandPrimaryColor={membership.agency.brandPrimaryColor}
       agencySlug={agencyId}
       email={user.email}
       activeSection="collaboration"

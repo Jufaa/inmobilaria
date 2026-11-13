@@ -1,0 +1,18 @@
+.popup { width: min(280px, calc(100vw - 64px)); max-height: 55vh; overflow: auto; display: grid; gap: 10px; padding: 0; background: transparent; box-sizing: border-box; }
+.popup article { position: relative; display: grid; gap: 8px; padding: 16px; border-radius: 12px; box-shadow: 0 4px 16px #0002; }
+.popup h2,.popup p { margin: 0; font-size: 1rem; }
+.popup h2,.popup small { padding-right: 28px; }
+.popup small { color: inherit; }
+.popup button,.reopen { cursor: pointer; border: 1px solid currentColor; border-radius: 8px; padding: 8px 12px; font: inherit; background: transparent; color: inherit; }
+.reopen { background: var(--panel-surface, #fff); color: var(--panel-text, #18372a); }
+.popup article .close { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; padding: 0; border: 0; font-size: 1.3rem; }
+.popup button:focus-visible,.reopen:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.page { display: grid; gap: 18px; }
+.form { display: grid; gap: 16px; padding: 20px; background: var(--panel-surface); border: 1px solid var(--panel-border); border-radius: 14px; }
+.form label { display: grid; gap: 6px; }
+.form input,.form select,.form textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid var(--panel-border); border-radius: 8px; font: inherit; color: var(--panel-text); background: var(--panel-input); }
+.form button { padding: 10px 16px; border: 0; border-radius: 8px; color: var(--panel-button-text); background: var(--panel-accent); cursor: pointer; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.form .checkboxRow { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.form input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; flex: 0 0 auto; accent-color: var(--panel-accent); }

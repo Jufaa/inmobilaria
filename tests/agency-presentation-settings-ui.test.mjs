@@ -183,6 +183,43 @@ function visibleNodes(tree, predicate) {
   return [...(predicate(tree) ? [tree] : []), ...visibleNodes(tree.props?.children, predicate)];
 }
 
+test('real agency admin can replace the map, save its bounds and return to interactive mode', async () => {
+  const app = harness();
+  const initialSettings = structuredClone(presentationApi.defaultPresentationSettings);
+  const saved = [];
+  const props = { agencyId: 'agency-a', realProperties: [], initialSettings,
+    onPersist: async value => {
+      const settings = presentationApi.parsePresentationSettings(value);
+      assert.ok(settings);
+      saved.push(structuredClone(settings));
+      return { settings, error: null };
+    },
+  };
+  try {
+    const field = label => visibleNodes(app.render(), node => node.type === 'label' && content(node).startsWith(label))[0];
+    const control = label => nodes(field(label), node => node.type === 'input' || node.type === 'select')[0];
+    app.render(props);
+    assert.ok(field('Modo de presentación del plano'), 'real agency map controls must be available');
+    control('Modo de presentación del plano').props.onChange({ target: { value: 'artwork' } });
+    control('URL de la imagen o ruta local').props.onChange({ target: { value: 'https://example.com/agency-map.webp' } });
+    for (const [label, value] of [['Longitud oeste', -65], ['Longitud este', -64], ['Latitud sur', -34], ['Latitud norte', -33]]) {
+      control(label).props.onChange({ target: { value: String(value) } });
+    }
+    assert.equal(saved.length, 0, 'draft edits must not persist automatically');
+    await nodes(app.render(), node => node.type === 'form')[0].props.onSubmit({ preventDefault() {} });
+    assert.equal(saved[0].map.mode, 'artwork');
+    assert.equal(saved[0].map.artworkUrl, 'https://example.com/agency-map.webp');
+    assert.deepEqual(saved[0].map.bounds, { west: -65, east: -64, south: -34, north: -33 });
+    assert.deepEqual(initialSettings, presentationApi.defaultPresentationSettings, 'initial settings remain unchanged');
+    control('Modo de presentación del plano').props.onChange({ target: { value: 'interactive' } });
+    await nodes(app.render(), node => node.type === 'form')[0].props.onSubmit({ preventDefault() {} });
+    assert.equal(saved[1].map.mode, 'interactive');
+    assert.equal(saved[1].map.artworkUrl, saved[0].map.artworkUrl, 'switching modes retains the prepared map');
+    app.render({ ...props, agencyId: 'agency-b', initialSettings: structuredClone(initialSettings) });
+    assert.equal(control('URL de la imagen o ruta local').props.value, initialSettings.map.artworkUrl, 'another agency retains its own map');
+  } finally { app.unmount(); }
+});
+
 test('editor panels retain one draft and a single save action while showing only their own controls', () => {
   const app = harness();
   try {

@@ -189,6 +189,25 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
     revision.current++;
   }
 
+  const mapControls = (
+      <fieldset className={styles.group}>
+        <legend>Aspecto del plano</legend>
+        <Field label="Modo de presentación del plano">
+          <select value={settings.map.mode} onChange={event => updateMap('mode', event.target.value as PresentationSettings['map']['mode'])}>
+            <option value="interactive">Plano interactivo</option><option value="artwork">Imagen preparada</option>
+          </select>
+        </Field>
+        <Field label="URL de la imagen o ruta local" hint={`Admite imágenes HTTPS y rutas locales /demo-assets o /maps. Las imágenes cargadas se guardan ${onPersist ? 'para esta inmobiliaria' : 'en este navegador'}.`}>
+          <input type="text" value={settings.map.artworkUrl} onChange={event => updateMap('artworkUrl', event.target.value)} placeholder="/maps/agency-plan.png" />
+        </Field>
+        <div className={styles.coordinateGrid}>
+          {([
+            ['Longitud oeste', 'west'], ['Longitud este', 'east'], ['Latitud sur', 'south'], ['Latitud norte', 'north'],
+          ] as const).map(([label, key]) => <Field key={key} label={label}><input type="number" step="any" value={settings.map.bounds[key]} onChange={event => updateBounds(key, event.target.value)} /></Field>)}
+        </div>
+      </fieldset>
+  );
+
   return <section className={styles.editor} aria-labelledby={`${panelId}-title`}>
     <header className={styles.header}>
       <div>
@@ -210,6 +229,10 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
         <Field label="Cargar imagen del plano" hint="PNG, JPEG o WebP; máximo 2 MB.">
           <input type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadArtwork} />
         </Field>
+        {realProperties && <>
+          <p>Puede cambiar el mapa de fondo sin eliminar las zonas, propiedades ni recorridos. Ajuste los límites geográficos para mantener sus ubicaciones alineadas.</p>
+          {mapControls}
+        </>}
         {realProperties && <fieldset className={styles.group}><legend>Video de entrada</legend>
           <label className={styles.toggle}><input type="checkbox" checked={settings.intro.enabled} onChange={event=>update(current=>({...current,intro:{...current.intro,enabled:event.target.checked}}))}/> Reproducir la presentación al entrar</label>
           <Field label="Presentación"><select value={settings.intro.videoUrl} onChange={event=>update(current=>({...current,intro:{...current.intro,videoUrl:event.target.value}}))}>
@@ -230,22 +253,7 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
 
       </details>
       <details><summary>Imagen base y colores del mapa</summary>
-      <fieldset className={styles.group}>
-        <legend>Aspecto del plano</legend>
-        <Field label="Modo de presentación del plano">
-          <select value={settings.map.mode} onChange={event => updateMap('mode', event.target.value as PresentationSettings['map']['mode'])}>
-            <option value="interactive">Plano interactivo</option><option value="artwork">Imagen preparada</option>
-          </select>
-        </Field>
-        <Field label="URL de la imagen o ruta local" hint={`Admite imágenes HTTPS y rutas locales /demo-assets o /maps. Las imágenes cargadas se guardan ${onPersist ? 'para esta inmobiliaria' : 'en este navegador'}.`}>
-          <input type="text" value={settings.map.artworkUrl} onChange={event => updateMap('artworkUrl', event.target.value)} placeholder="/maps/agency-plan.png" />
-        </Field>
-        <div className={styles.coordinateGrid}>
-          {([
-            ['Longitud oeste', 'west'], ['Longitud este', 'east'], ['Latitud sur', 'south'], ['Latitud norte', 'north'],
-          ] as const).map(([label, key]) => <Field key={key} label={label}><input type="number" step="any" value={settings.map.bounds[key]} onChange={event => updateBounds(key, event.target.value)} /></Field>)}
-        </div>
-      </fieldset>
+      {mapControls}
 
       </details>
       <details><summary>Puntos de referencia</summary>

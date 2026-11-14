@@ -1,5 +1,11 @@
 # Agency map customization
 
+## Replace an agency's map
+
+As a system administrator, open **Personalización → Editar mapa**. Select **Imagen preparada** under **Modo de presentación del plano**, then upload a PNG, JPEG or WebP (maximum 2 MB), or enter an HTTPS image URL. Set the west/east longitudes and south/north latitudes to the area covered by the image, then choose **Guardar cambios**. The saved map applies only to that agency.
+
+Zones remain selectable overlays, with their existing property and tour navigation. Changing the background does not delete zones, listings or tours. The image and geographic bounds must align with the existing zone coordinates; changing cities does not automatically relocate them. Choose **Plano interactivo** and save to return to the interactive map without discarding the prepared image.
+
 ## Who can edit
 
 **Visitors** consult public properties and coordinate visits through the property WhatsApp contact. **Owning-agency OWNER/ADMIN members** may manage their real catalogue, scoped photos/contact, primary brand/type/popup colors and offers. **System-wide administrators** (`PlatformRole.OWNER`) additionally retain advanced maps, zones, templates, identity/media settings and other existing system-only mutations. EDITOR/AGENT memberships do not gain those writes. Read-only forms stay disabled; every server action and photo token also enforces canonical agency scope.

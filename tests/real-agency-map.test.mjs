@@ -19,6 +19,29 @@ function load(path, mocks = {}) {
 const all = tree => !tree || typeof tree !== 'object' ? [] : Array.isArray(tree) ? tree.flatMap(all) : [tree, ...all(tree.props?.children)];
 const text = tree => tree == null || typeof tree === 'boolean' ? '' : typeof tree !== 'object' ? String(tree) : Array.isArray(tree) ? tree.map(text).join(' ') : text(tree.props?.children);
 const property = { id: 'real-cuid', title: 'Casa real', address: 'Calle 100', neighborhood: 'Centro', price: 100, currency: 'USD', area: 50, bedrooms: 1, bathrooms: 1, status: 'DRAFT', type: 'HOUSE', operation: 'SALE', features: [], description: 'Descripción real', media: [{id:'photo',kind:'PHOTO',url:'https://photos.example/a.jpg'}] };
+test('replacement artwork retains selectable zones and property markers', () => {
+  const { RealArtworkMap } = load('../components/auth/RealArtworkMap.tsx', {
+    react: { useState: initial => [initial, () => {}] },
+    '@/lib/map-rectangle-selection': { clientPoint() {} },
+  });
+  const selected = [];
+  const bounds = { west: -65, east: -64, south: -34, north: -33 };
+  const tree = RealArtworkMap({
+    appearance: { bounds, artworkUrl: 'https://example.com/custom-map.webp' },
+    areas: [{ id: 'custom-zone', label: 'Zona propia', bounds: { west: -64.8, east: -64.6, south: -33.8, north: -33.6 } }],
+    areaColors: { 'custom-zone': '#112233' }, points: [],
+    markers: [{ id: 1, address: 'Casa real', latitude: -33.7, longitude: -64.7, showPrice: false }],
+    onAreaSelect: id => selected.push(id), onSelect: id => selected.push(id),
+  });
+  assert.equal(all(tree).find(node => node.type === 'img').props.src, 'https://example.com/custom-map.webp');
+  const buttons = all(tree).filter(node => node.type === 'button');
+  assert.equal(buttons.length, 2);
+  for (const button of buttons) {
+    assert.equal(button.props.disabled, false);
+    button.props.onClick({ stopPropagation() {} });
+  }
+  assert.deepEqual(selected, ['custom-zone', 1]);
+});
 test('focused property detail contains actual selected record only, without sample sidebar', () => {
   const { RealPropertyDetail } = load('../components/auth/RealPropertyDetail.tsx',{'../PropertyWhatsAppButton':{PropertyWhatsAppButton:'whatsapp-button'}});
   const tree = RealPropertyDetail({ property, onBack() {} });

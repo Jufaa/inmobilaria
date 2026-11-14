@@ -1,6 +1,7 @@
 'use client';
 
 import { EditableForm } from './WorkspaceEditPermission';
+import { ZoneMapSettings } from './ZoneMapSettings';
 import { ExamplePropertyFields } from './ExamplePropertyFields';
 import type { AgencyPropertyRecord } from '@/lib/properties/agency-property-service';
 
@@ -241,6 +242,7 @@ export function AgencyPresentationSettings({ agencyId, onSaved, initialSettings,
           </select></Field>
         </fieldset>}
         <PresentationExplorerSettings realProperties={realProperties} key={agencyId} mode="map" settings={settings} config={config} onPointsChange={points => update(current => ({ ...current, points }))} onChange={explorer => update(current => ({ ...current, explorer }))} />
+        {config && <ZoneMapSettings key={agencyId} settings={settings} config={config} records={realProperties} onChange={zoneMaps => update(current => ({ ...current, zoneMaps }))} />}
         {!realProperties && <details className={styles.advanced}><summary>Avanzado</summary>
       <details><summary>Video de entrada</summary>
       <fieldset className={styles.group}>

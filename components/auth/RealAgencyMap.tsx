@@ -162,6 +162,9 @@ export function RealAgencyMap({ agencySlug, agencyId, agencyName, properties, se
     </>}
     {!selected&&!position&&!activeExampleZone&&resultCards&&<div className={styles.resultsPosition} data-map-search-results>{resultCards}</div>}
     {activeExampleZone && examples && <WorkspaceAerialExperience key={`${activeExampleZone.id}-${offerRevision}`} initialPropertyId={requestedExampleId} canEdit={canCustomize} onSaveExampleDetails={canCustomize ? saveExampleDetails : undefined} zone={activeExampleZone} clean
+      artworkProperties={visible.filter(record => settings.zoneMaps?.[activeExampleZone.id]?.mode === 'illustrated'
+        ? settings.zoneMaps[activeExampleZone.id].pins.some(pin => pin.source === 'real' && pin.propertyId === record.id)
+        : zoneFor(record) === activeExampleZone.id).map(record => ({ source: 'real', propertyId: record.id, title: record.title, latitude: record.latitude, longitude: record.longitude }))}
       settings={settings} pointsOfInterest={mapPoints} initialConfig={examples} persistDemoConfig={persistDemoConfig} onConfigSaved={setExamples}
       filters={filters} onFiltersChange={setFilters} filterZones={zones}
       searchControls={<MapSearchControls>{filterControls}</MapSearchControls>} searchResults={resultCards} matchedExampleIds={searchResults.filter(item=>item.source==='example').map(item=>item.id)}

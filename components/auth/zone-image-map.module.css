@@ -1,0 +1,8 @@
+.surface { position: relative; width: 100%; background: #e8ece5; }
+.surface > img { display: block; width: 100%; height: auto; }
+.pin { position: absolute; transform: translate(-50%, -50%); border: 2px solid white; border-radius: 50%; background: #245b49; color: white; padding: .35rem; cursor: pointer; z-index: 1; min-width: 2rem; min-height: 2rem; }
+.pin:focus-visible { outline: 3px solid #1745ff; outline-offset: 3px; z-index: 2; }
+.pin span { display: block; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: max-content; max-width: 10rem; background: white; color: #203d37; padding: .2rem .4rem; border-radius: .3rem; font-size: .75rem; overflow-wrap: anywhere; }
+.frame { background: #f6f8ef; color: #203d37; min-height: 100%; padding: 1rem; overflow: auto; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+.toolbar h2 { flex: 1; }

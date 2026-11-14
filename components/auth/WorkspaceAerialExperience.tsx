@@ -15,8 +15,12 @@ import { PresentationFilters } from './PresentationFilters';
 import type { PropertySummaryFields } from '@/lib/property-offers';
 import type { ComponentProps } from 'react';
 import type { Zone } from '@/lib/zones';
+import type { ZoneMapTarget } from '@/lib/zone-map';
+import { ZoneImageMap } from './ZoneImageMap';
+import imageStyles from './zone-image-map.module.css';
 
-export function WorkspaceAerialExperience({ zone, onClose, settings, pointsOfInterest, initialConfig, persistDemoConfig, onConfigSaved, clean = false, filters, onFiltersChange, filterZones = [], onZoneSelect, canvasActions, canEdit = false, initialPropertyId, onSaveExampleDetails, searchControls, searchResults, matchedExampleIds }: {
+export function WorkspaceAerialExperience({ zone, onClose, settings, pointsOfInterest, initialConfig, persistDemoConfig, onConfigSaved, clean = false, filters, onFiltersChange, filterZones = [], onZoneSelect, canvasActions, canEdit = false, initialPropertyId, onSaveExampleDetails, searchControls, searchResults, matchedExampleIds, artworkProperties = [] }: {
+  artworkProperties?: ZoneMapTarget[];
   searchControls?: ReactNode; searchResults?: ReactNode; matchedExampleIds?: string[];
   canEdit?: boolean; initialPropertyId?: string;
   onSaveExampleDetails?: (id: string, fields: PropertySummaryFields) => Promise<string | null>;
@@ -84,10 +88,28 @@ export function WorkspaceAerialExperience({ zone, onClose, settings, pointsOfInt
     } catch { return 'No se pudo guardar la personalización local. No se modificó el catálogo.'; }
   }
 
+  const zoneMap = settings?.zoneMaps?.[zone.id];
+  const customMap = zoneMap && zoneMap.mode !== 'google' ? zoneMap : null;
+  const zoneNavigation = onZoneSelect && filterZones.length > 1 ? <nav className={styles.zoneNavigation} aria-label="Cambiar de zona">
+    <label>Zona<select aria-label="Elegir zona" value={zone.id} onChange={event => onZoneSelect(event.target.value)}>{filterZones.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+  </nav> : undefined;
+
   return <div className={styles.experience}>
     <dialog ref={aerial} className={styles.aerialDialog} aria-label={`Presentación aérea de ${zone.name}`}
       onCancel={(event) => { event.preventDefault(); onClose(); }}>
-      {area ? <GoogleAerialArea {...canvasActions} searchControls={searchControls} searchResults={searchResults} zoneNavigation={onZoneSelect && filterZones.length > 1 ? <nav className={styles.zoneNavigation} aria-label="Cambiar de zona">
+      {area ? customMap ? <section className={imageStyles.frame} aria-label={`Mapa de ${zone.name}`}>
+        <header className={imageStyles.toolbar}><h2>{zone.name}</h2><button type="button" onClick={onClose}>Volver al mapa</button>{zoneNavigation}{searchControls}</header>
+        {!searchControls && clean && onFiltersChange && <PresentationFilters value={filters ?? {}} onChange={onFiltersChange} settings={settings?.explorer ?? defaultExplorerSettings} zones={filterZones} />}
+        {customMap.mode === 'geographic' ? canvasActions?.managementControls : canEdit && <p>Las chinchetas de este plano se vinculan desde Personalización. Agregue propiedades y su ubicación real desde el mapa geográfico.</p>}
+        {canvasActions?.managementPanel}
+        <ZoneImageMap key={`${zone.id}-${customMap.imageUrl}-${customMap.mode}`} map={customMap} targets={[
+          ...area.properties.map(property => ({ source: 'example' as const, propertyId: property.id, title: `${property.title} (ejemplo)`, latitude: property.latitude, longitude: property.longitude })), ...artworkProperties,
+        ]} onSelect={target => { if (target.source === 'real') canvasActions?.onCatalogueSelect?.(target.propertyId); else openProperty(target.propertyId); }}
+          onPlace={customMap.mode === 'geographic' && canvasActions?.onMapPick ? point => canvasActions.onMapPick?.([
+            customMap.bounds.west + point.x * (customMap.bounds.east - customMap.bounds.west), customMap.bounds.north - point.y * (customMap.bounds.north - customMap.bounds.south),
+          ]) : undefined} />
+        {canvasActions?.floatingContent}{searchResults}
+      </section> : <GoogleAerialArea {...canvasActions} searchControls={searchControls} searchResults={searchResults} zoneNavigation={onZoneSelect && filterZones.length > 1 ? <nav className={styles.zoneNavigation} aria-label="Cambiar de zona">
         <button type="button" aria-label="Zona anterior" onClick={() => onZoneSelect(filterZones[(filterZones.findIndex(item => item.id === zone.id) - 1 + filterZones.length) % filterZones.length].id)}>←</button>
         <label>Zona<select aria-label="Elegir zona" value={zone.id} onChange={event => onZoneSelect(event.target.value)}>{filterZones.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
         <button type="button" aria-label="Zona siguiente" onClick={() => onZoneSelect(filterZones[(filterZones.findIndex(item => item.id === zone.id) + 1) % filterZones.length].id)}>→</button>

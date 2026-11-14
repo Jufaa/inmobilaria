@@ -160,6 +160,22 @@ test('main map retains examples, zone focus and reference pins without replacing
   app.find('aerial-experience').props.canvasActions.onMapPick([-64.32,-33.12]);
   assert.deepEqual(app.find('aerial-experience').props.canvasActions.managementPanel.props.position,[-64.32,-33.12]);
 });
+test('illustrated zone links include unlocated real properties, exclude hidden ones and preserve catalogue coordinates', () => {
+  const record = { ...property, latitude: null, longitude: null };
+  const app = mapHarness([record, { ...record, id: 'hidden', title: 'Hidden' }]);
+  app.props.exampleConfig = defaultDemoConfig;
+  app.props.settings.explorer.zones = null;
+  app.props.settings.explorer.listings.hidden = { hidden: true };
+  const zone = app.find('city-map').props.areas[0];
+  app.props.settings.zoneMaps = { [zone.id]: { mode: 'illustrated', pins: [{ source: 'real', propertyId: record.id, x: .3, y: .7 }, { source: 'real', propertyId: 'hidden', x: .5, y: .5 }] } };
+  app.find('city-map').props.onAreaSelect(zone.id);
+  const aerial = app.find('aerial-experience');
+  assert.deepEqual(aerial.props.artworkProperties.map(target => target.propertyId), [record.id]);
+  aerial.props.canvasActions.onCatalogueSelect(record.id);
+  assert.equal(app.find('property-detail').props.property.id, record.id);
+  assert.equal(record.latitude, null);
+  assert.equal(record.longitude, null);
+});
 test('main page hydrates persisted examples without removing the real catalogue or membership guard', () => {
   const source=readFileSync(new URL('../app/inmobiliaria/[agencyId]/panel/page.tsx',import.meta.url),'utf8');
   assert.match(source,/exampleConfig=\{parseDemoConfig\(presentationConfig\?\.demoTourConfig\) \?\? defaultDemoConfig\}/);
@@ -229,6 +245,7 @@ test('aerial zone selector and previous/next buttons target the requested zone a
     'lucide-react':{ArrowLeft:()=>null},'@/components/GoogleAerialArea':{GoogleAerialArea:'google-area'},'@/components/PropertyTourDemo':{PropertyTourDemo:'example-tour'},'@/components/TourDemoEditor':{TourDemoEditor:'tour-editor'},
     '@/lib/property-tour-config':{defaultDemoConfig},'@/lib/workspace-aerial-presentation':{createPresentationArea:()=>({properties:[]})},
     '@/lib/presentation-listings':{visiblePresentationArea:()=>({properties:[]})},'@/lib/presentation-explorer':{defaultExplorerSettings:{}},'./PresentationFilters':{PresentationFilters:'filters'},
+    './ZoneImageMap':{ZoneImageMap:'zone-image-map'},
   });
   const zones=zonesForConfig(defaultDemoConfig), targets=[];
   const props={zone:{id:zones[0].id,name:zones[0].label},onClose(){},filterZones:zones,onZoneSelect:id=>targets.push(id)};
@@ -360,4 +377,24 @@ test('zone navigation never starts a search and explicit filters stay inside the
   assert.equal(all(app.render()).filter(node => node.props?.['data-map-search-results']).length, 0);
   aerial.props.searchResults.props.onClear();
   assert.equal(app.find('aerial-experience').props.searchResults, null);
+});
+
+test('plan pins obey selected zone, price and text filters and route selected real records', () => {
+ const unlocated={...property,id:'unlocated',title:'Affordable home',price:100,latitude:null,longitude:null};
+ const costly={...unlocated,id:'costly',title:'Expensive home',price:900000};
+ const app=mapHarness([unlocated,costly]); app.props.exampleConfig=defaultDemoConfig;app.props.settings.explorer.zones=null;
+ const zones=app.find('city-map').props.areas; const zone=zones[0];
+ app.props.settings.zoneMaps={[zone.id]:{mode:'illustrated',pins:[unlocated,costly].map(p=>({source:'real',propertyId:p.id,x:.3,y:.6}))}};
+ app.find('city-map').props.onAreaSelect(zone.id);
+ const filters=all(app.find('aerial-experience').props.searchControls).find(n=>n.type==='filters');
+ filters.props.onChange({zone:zone.id,max:'500'});
+ assert.deepEqual(app.find('aerial-experience').props.artworkProperties.map(p=>p.propertyId),['unlocated']);
+ const controls=app.find('aerial-experience').props.searchControls;
+ all(controls).find(n=>n.type==='input'&&n.props.type==='search').props.onChange({target:{value:'nothing matches'}});
+ assert.deepEqual(app.find('aerial-experience').props.artworkProperties,[]);
+ all(app.find('aerial-experience').props.searchControls).find(n=>n.type==='input'&&n.props.type==='search').props.onChange({target:{value:'Affordable'}});
+ assert.equal(app.find('aerial-experience').props.artworkProperties[0].propertyId,'unlocated');
+ app.find('aerial-experience').props.canvasActions.onCatalogueSelect('unlocated');
+ assert.equal(app.find('property-detail').props.property.id,'unlocated');
+ assert.equal(unlocated.latitude,null);assert.equal(unlocated.longitude,null);
 });

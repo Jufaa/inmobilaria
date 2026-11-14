@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+import { defaultPresentationSettings, parsePresentationSettings } from '../lib/agency-presentation.ts';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -39,4 +41,24 @@ test('agency presentation and demo templates hydrate and persist through members
   assert.match(settingsEditor, /await onPersist\(settings\)/);
   assert.match(tourConfig, /parseDemoConfig/);
   assert.match(nextConfig, /serverActions:\s*\{\s*bodySizeLimit:\s*'3mb'/);
+});
+
+test('zone map saves use canonical agency scope and invalid configurations preserve stored data', async () => {
+const code=ts.transpileModule(read('../app/inmobiliaria/[agencyId]/panel/personalizacion/presentation-actions.ts'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+let stored=structuredClone(defaultPresentationSettings),writes=0,authorized=[];
+const api={};new Function('require','exports',code)(id=>{
+if(id==='next/cache')return {revalidatePath(){}};
+if(id==='@/lib/agency-access')return {requireAgencyPlatformEditAccess:async slug=>{authorized.push(slug);return {membership:{agency:{id:'canonical-agency'}}};}};
+if(id==='@/lib/properties/property-contact-service')return {savePresentationPreservingContacts:async (agency,s)=>{assert.equal(agency,'canonical-agency');stored=structuredClone(s);writes++;return stored;}};
+if(id==='@/lib/agency-presentation')return {parsePresentationSettings};
+return {};
+},api);
+const valid={...structuredClone(defaultPresentationSettings),zoneMaps:{centro:{mode:'illustrated',imageUrl:'https://example.org/map.webp',bounds:{west:-65,east:-64,south:-34,north:-33},pins:[{source:'real',propertyId:'home-1',x:.3,y:.9}]}}};
+assert.equal((await api.savePresentationSettingsAction('public-slug',valid)).error,null);
+const before=JSON.stringify(stored);
+for (const mutate of [s=>s.zoneMaps.centro.pins[0].x=-.1,s=>s.zoneMaps.centro.mode='invalid',s=>s.zoneMaps.centro.imageUrl='javascript:alert(1)']) {
+const bad=structuredClone(valid);mutate(bad);const result=await api.savePresentationSettingsAction('public-slug',bad);assert.equal(result.settings,null);assert.equal(JSON.stringify(stored),before);assert.equal(writes,1);
+}
+assert.equal(authorized.length,4);
+
 });

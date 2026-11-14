@@ -1,6 +1,7 @@
 import { parsePropertyContacts, type PropertyWhatsApp } from './properties/property-whatsapp.ts';
 import type { MapBounds } from './zones.ts';
 import { parseExplorerSettings, type ExplorerSettings } from './presentation-explorer.ts';
+import { parseZoneMaps, type ZoneMap } from './zone-map.ts';
 
 export type PresentationPoint = { id: string; name: string; latitude: number; longitude: number; color: string };
 export type PresentationMapStyle = {
@@ -8,6 +9,7 @@ export type PresentationMapStyle = {
   accentColor: string; landColor: string; buildingColor: string; waterColor: string;
 };
 export type PresentationSettings = {
+  zoneMaps?: Record<string, ZoneMap>;
   propertyContacts?: Record<string,PropertyWhatsApp>;
   explorer?: ExplorerSettings;
   version: 1;
@@ -80,7 +82,10 @@ export function parsePresentationSettings(value: unknown): PresentationSettings 
   if(propertyContacts===null)return null;
   const explorer = value.explorer === undefined ? undefined : parseExplorerSettings(value.explorer, media);
   if (explorer === null) return null;
+  const zoneMaps = value.zoneMaps === undefined ? undefined : parseZoneMaps(value.zoneMaps, image => media(image, true));
+  if (zoneMaps === null) return null;
   return {
+    ...(zoneMaps ? { zoneMaps } : {}),
     ...(explorer ? { explorer } : {}),
     ...(propertyContacts ? {propertyContacts} : {}),
     version: 1, intro: { enabled: value.intro.enabled, videoUrl: value.intro.videoUrl },

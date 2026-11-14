@@ -56,6 +56,7 @@ function harness(initialAgency = 'agency-a', storage = new Map(), eventLog = [])
     if (id === '@/lib/agency-presentation') return presentationApi;
     if (id === './PanelColorPicker') return { PanelColorPicker: ({ label, value, onChange }) => require('react/jsx-runtime').jsx('label', { children: [label, require('react/jsx-runtime').jsx('input', { type: 'color', 'aria-label': label, value, onChange: event => onChange(event.target.value) })] }) };
     if (id === './PresentationExplorerSettings') return { PresentationExplorerSettings: () => null };
+    if (id === './ZoneMapSettings') return { ZoneMapSettings: () => null };
     if (id === './PersonalizationPanels') return {
       presentationSections: [{ id: 'map', label: 'Mapa' }, { id: 'properties', label: 'Inmuebles' }, { id: 'appearance', label: 'Apariencia' }],
       PresentationPanelTabs: ({ sections, value, onChange }) => require('react/jsx-runtime').jsx('nav', { children: sections.map(section => require('react/jsx-runtime').jsx('button', { type: 'button', role: 'tab', 'aria-selected': value === section.id, onClick: () => onChange(section.id), children: section.label }, section.id)) }),

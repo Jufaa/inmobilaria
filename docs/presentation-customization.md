@@ -6,6 +6,18 @@ As a system administrator, open **Personalización → Editar mapa**. Select **I
 
 Zones remain selectable overlays, with their existing property and tour navigation. Changing the background does not delete zones, listings or tours. The image and geographic bounds must align with the existing zone coordinates; changing cities does not automatically relocate them. Choose **Plano interactivo** and save to return to the interactive map without discarding the prepared image.
 
+## Inner zone maps and property pins
+
+The system administrator can open **Personalización → Editar mapa → Mapa interno y chinchetas de cada zona** and select a zone. Choose one of these modes, then use the existing **Guardar cambios** action:
+
+- **Vista aérea de Google (original)** retains the existing 3D map and GPS-based placement.
+- **Mapa geográfico con coordenadas** uses an uploaded PNG/JPEG/WebP or HTTPS image URL. Set its geographic west/east/south/north bounds; existing property coordinates determine the pin positions. Properties outside the image are not shown. New property placement uses those calibrated geographic bounds.
+- **Plano ilustrado con chinchetas manuales** uses independent positions on the image. Select a real property or an example, then click the image (or focus it and press Enter to place in the center). Drag a linked pin or use arrow keys to move it; Escape or a cancelled pointer gesture discards the current drag. **Quitar chincheta del plano** removes only that visual link. Unlocated real properties can also be linked.
+
+Manual links store the property identity and normalized image position, never a replacement latitude/longitude. Real pins open the existing property detail; example pins keep their existing tour. Hidden/filtered properties remain excluded. Geographic property creation is intentionally unavailable on an illustrated plan: create the catalogue record separately, then link it here. Switching map modes retains the configured image and manual links. A zone with no override still uses the original Google view.
+
+Configuration is saved per agency and per zone with the existing administrator guard. Each upload permits up to 2 MB; the entire presentation retains its existing 3 MB serialized limit, so use image URLs for several large zone maps. Align geographic imagery externally; the app does not infer geography from an arbitrary illustration.
+
 ## Who can edit
 
 **Visitors** consult public properties and coordinate visits through the property WhatsApp contact. **Owning-agency OWNER/ADMIN members** may manage their real catalogue, scoped photos/contact, primary brand/type/popup colors and offers. **System-wide administrators** (`PlatformRole.OWNER`) additionally retain advanced maps, zones, templates, identity/media settings and other existing system-only mutations. EDITOR/AGENT memberships do not gain those writes. Read-only forms stay disabled; every server action and photo token also enforces canonical agency scope.

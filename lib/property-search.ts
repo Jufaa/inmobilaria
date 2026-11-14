@@ -29,10 +29,12 @@ export function buildPropertySearchResults({properties,settings,examples,zones,f
   const base=enabledPresentationFilters(filters,preferences);
   // An empty currency is unrestricted; amounts are never converted between currencies.
   base.currency=preferences.filters.price ? filters.currency??'' : '';
+  const selectedPlan = base.zone ? settings.zoneMaps?.[base.zone] : undefined;
+  const linkedToSelectedPlan = (id: string) => selectedPlan?.mode === 'illustrated' && selectedPlan.pins.some(pin => pin.source === 'real' && pin.propertyId === id);
   const offered=(source:'real'|'example',id:string)=>!!preferences.listings[id]?.offer || !!preferences.offers?.some(offer=>offer.enabled&&offer.source===source&&offer.propertyId===id);
   const real:PropertySearchResult[]=properties.filter(record=>!preferences.listings[record.id]?.hidden).map(record=>({
     id:record.id,source:'real',title:record.title,description:record.description,address:record.address,neighborhood:record.neighborhood,
-    price:record.price,currency:record.currency,kind:kinds[record.type],zoneId:propertyZoneId(record,zones),
+    price:record.price,currency:record.currency,kind:kinds[record.type],zoneId:linkedToSelectedPlan(record.id) ? base.zone : propertyZoneId(record,zones),
     area:record.area,bedrooms:record.bedrooms,bathrooms:record.bathrooms,features:record.features,operation:record.operation,status:record.status,
     garage:record.features.some(feature=>normalizePropertySearch(feature)==='cochera'),offer:offered('real',record.id),
     image:record.media.find(media=>media.kind==='PHOTO')?.url,

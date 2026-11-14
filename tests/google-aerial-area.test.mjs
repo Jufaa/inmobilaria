@@ -77,3 +77,31 @@ test('public aerial view hides editing and offers remain an optional overlay', (
  const html = renderToStaticMarkup(createElement(exports.GoogleAerialArea, {area,onSelect(){},onClose(){},floatingContent:createElement('span',null,'Oferta especial')}));
  assert.ok(!html.includes('Personalizar')); assert.ok(html.includes('Oferta especial'));
 });
+
+test('workspace aerial view removes the legacy property menu and keeps filters with results below header actions', () => {
+  const area = buildDemoAreas(defaultDemoConfig)[0];
+  const props = { area, clean: true, onSelect() {}, onClose() {}, onEdit() {},
+    searchControls: createElement('details', null, createElement('summary', null, 'Filtros')),
+    managementControls: createElement('button', null, 'Agregar propiedad'),
+  };
+  const initial = renderToStaticMarkup(createElement(exports.GoogleAerialArea, props));
+  assert.ok(!initial.includes('<footer'));
+  assert.ok(!initial.includes('Ver opciones'));
+  assert.ok(initial.includes('aerialWorkspaceLayout'));
+  assert.ok(initial.includes('aerialHeaderActions'));
+  const filtered = renderToStaticMarkup(createElement(exports.GoogleAerialArea, {
+    ...props, searchResults: createElement('section', { 'aria-label': 'Resultados' }, 'Casa encontrada'),
+  }));
+  assert.match(filtered, /class="aerialSearchDock"[^]*Filtros[^]*aerialSearchResults[^]*Casa encontrada/);
+});
+
+test('legacy mobile positioning targets only the aerial title, not the action group', () => {
+  const css = readFileSync(new URL('../components/aerial-experience.module.css', import.meta.url), 'utf8');
+  assert.match(css, /\.aerialHeader > \.aerialTitle\s*\{\s*position: absolute; top: 63px; left: 12px/);
+  assert.doesNotMatch(css, /\.aerialHeader > div\s*\{\s*position: absolute/);
+  const html = renderToStaticMarkup(createElement(exports.GoogleAerialArea, {
+    area: buildDemoAreas(defaultDemoConfig)[0], onSelect() {}, onClose() {}, onEdit() {},
+  }));
+  assert.match(html, /class="aerialTitle"/);
+  assert.match(html, /class="aerialHeaderActions"/);
+});

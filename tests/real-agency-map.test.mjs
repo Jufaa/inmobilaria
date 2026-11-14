@@ -264,7 +264,8 @@ test('explicit example offer selection clears conflicting visitor filters before
   app.find('filters').props.onChange({min:'999999999',kind:'Lote',bedrooms:'50',garage:'yes'});
   promotedOffer.props.onSelect(target);
   const aerial=app.find('aerial-experience');
-  assert.deepEqual(aerial.props.filters,{zone:target.zoneId});
+  assert.deepEqual(aerial.props.filters,{});
+  assert.equal(aerial.props.searchResults,null);
   assert.equal(aerial.props.initialPropertyId,target.id);
 });
 
@@ -318,4 +319,22 @@ test('legend swatches retain exact selected category backgrounds independently f
  const app=mapHarness([]);app.props.fullscreen=true;app.props.settings.explorer.kindColors={Casa:'#ee1100',Departamento:'#0044cc',PH:'#aa22cc',Lote:'#aa8800'};
  const colors=all(app.find('sidebar-controls')).filter(node=>node.type==='i').map(node=>node.props.style.backgroundColor);
  assert.ok(colors.includes('#ee1100'));assert.ok(colors.includes('#0044cc'));assert.ok(colors.includes('#aa22cc'));
+});
+
+test('zone navigation never starts a search and explicit filters stay inside the aerial modal', () => {
+  const app = mapHarness([]);
+  app.props.fullscreen = true;
+  app.props.exampleConfig = defaultDemoConfig;
+  app.props.settings.explorer.zones = null;
+  const zones = app.find('city-map').props.areas;
+  app.find('city-map').props.onAreaSelect(zones[0].id);
+  assert.equal(app.find('aerial-experience').props.searchResults, null);
+  app.find('aerial-experience').props.onZoneSelect(zones[1].id);
+  assert.equal(app.find('aerial-experience').props.searchResults, null);
+  app.find('aerial-experience').props.onFiltersChange({ kind: 'Casa' });
+  const aerial = app.find('aerial-experience');
+  assert.ok(aerial.props.searchResults);
+  assert.equal(all(app.render()).filter(node => node.props?.['data-map-search-results']).length, 0);
+  aerial.props.searchResults.props.onClear();
+  assert.equal(app.find('aerial-experience').props.searchResults, null);
 });

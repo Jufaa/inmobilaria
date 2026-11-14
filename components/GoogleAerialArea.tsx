@@ -226,16 +226,23 @@ export function GoogleAerialArea({ area, onSelect, onClose, onEdit, appearance, 
     else callbacks.current.onCatalogueSelect?.(property.id);
   }
 
-  return <section className={`${styles.aerialExperience} ${clean ? styles.cleanAerial : ''}`} aria-label={`Vista aérea y propiedades de ${area.label}`}>
+  return <section className={`${styles.aerialExperience} ${clean ? styles.cleanAerial : ''} ${searchControls ? styles.workspaceAerial : ''}`} aria-label={`Vista aérea y propiedades de ${area.label}`}>
     <div ref={host} className={styles.aerialCanvas} />
+    <div className={searchControls ? styles.aerialWorkspaceLayout : undefined}>
     <header className={styles.aerialHeader}>
       <button onClick={onClose}><ArrowLeft size={16} /> Volver al mapa</button>
-      <div>{!clean && <span>PRESENTACIÓN · PROPIEDADES DE EJEMPLO</span>}<h1>{area.label}</h1></div>{zoneNavigation}{filterControls}{managementControls && <div className={styles.aerialManagementControls}>{managementControls}</div>}
-      {onEdit && <button onClick={onEdit}><Settings2 size={16} /> Personalizar</button>}
+      <div className={styles.aerialTitle}>{!clean && <span>PRESENTACIÓN · PROPIEDADES DE EJEMPLO</span>}<h1>{area.label}</h1></div>{zoneNavigation}{filterControls}
+      <div className={styles.aerialHeaderActions}>
+        {managementControls && <div className={styles.aerialManagementControls}>{managementControls}</div>}
+        {onEdit && <button onClick={onEdit}><Settings2 size={16} /> Personalizar</button>}
+      </div>
     </header>
+    {(searchControls || searchResults) && <div className={styles.aerialSearchDock}>
+      {searchControls&&<aside className={styles.aerialSearchControls} aria-label="Buscar propiedades">{searchControls}</aside>}
+      {searchResults&&<div className={styles.aerialSearchResults}>{searchResults}</div>}
+    </div>}
+    </div>
     {onMapPick && !managementControls && <p role="status" style={{ position: 'absolute', zIndex: 3, top: 96, left: 20, maxWidth: 'calc(100% - 40px)', margin: 0, padding: '10px 14px', borderRadius: 10, background: 'var(--panel-surface, #ffffff)', color: 'var(--panel-text, #18372a)', pointerEvents: 'none' }}>Toque el mapa para elegir la ubicación.</p>}
-    {searchControls&&<aside className={styles.aerialSearchControls} aria-label="Buscar propiedades">{searchControls}</aside>}
-    {searchResults&&<div className={styles.aerialSearchResults}>{searchResults}</div>}
     {floatingContent && <div className={styles.aerialOffers}>{floatingContent}</div>}
     {managementPanel && <aside className={styles.aerialManagementPanel} aria-label="Administrar elementos de la zona">{managementPanel}</aside>}
     {state === 'loading' && <div className={styles.aerialLoading} role="status">Cargando la vista aérea de Google…</div>}
@@ -252,7 +259,7 @@ export function GoogleAerialArea({ area, onSelect, onClose, onEdit, appearance, 
       <button aria-pressed={topDown} onClick={() => { if (map.current) { const next = !topDown; map.current.tilt = next ? 0 : 45; setTopDown(next); } }}>Vista {topDown ? '3D' : 'cenital'}</button>
       <button onClick={() => { if (map.current) { map.current.center = camera.center; map.current.range = camera.range; map.current.tilt = 0; map.current.heading = 0; setTopDown(true); } }}>Centrar zona</button>
     </div>
-    <footer className={styles.aerialFooter}>
+    {!searchControls && <footer className={styles.aerialFooter}>
       <details open={!clean || preferences?.showDetails}><summary hidden={!clean}>{area.properties.length + realProperties.length} propiedades · Ver opciones</summary>
       <div className={styles.aerialLegend}><span><MapPin size={13} /> {area.properties.length ? `${area.properties.length} propiedades ficticias en esta zona` : `${realProperties.length} inmuebles en esta zona`}</span><p>Toca un punto sobre el mapa o una opción de abajo para ver su video de entrada.</p></div>
       {!!areaPoints.length && <section aria-label="Puntos de interés" aria-live="polite" style={{ borderInlineStart: `3px solid ${appearance?.accentColor ?? '#be6345'}`, paddingInlineStart: 12, maxHeight: '4.5rem', overflowY: 'auto', fontSize: '0.75rem' }}>
@@ -273,6 +280,6 @@ export function GoogleAerialArea({ area, onSelect, onClose, onEdit, appearance, 
       {area.properties.length === 0 && realProperties.length === 0 && <p role="status">No hay propiedades que coincidan con los filtros.</p>}
       </details>
       <details open={!clean}><summary hidden={!clean}>Acerca de esta vista</summary><p className={styles.aerialDisclaimer}>Imágenes de Google; el detalle 3D depende de su cobertura. {area.properties.length ? 'Las propiedades y ubicaciones son ficticias. Los videos de muestra se reutilizan y no representan los edificios señalados.' : 'Las fichas corresponden al catálogo de la inmobiliaria.'}</p></details>
-    </footer>
+    </footer>}
   </section>;
 }

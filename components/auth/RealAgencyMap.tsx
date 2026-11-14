@@ -81,7 +81,7 @@ export function RealAgencyMap({ agencySlug, agencyId, agencyName, properties, se
     geometry: { type: 'Polygon', coordinates: [[[selectedArea.bounds.west, selectedArea.bounds.south], [selectedArea.bounds.east, selectedArea.bounds.south], [selectedArea.bounds.east, selectedArea.bounds.north], [selectedArea.bounds.west, selectedArea.bounds.north], [selectedArea.bounds.west, selectedArea.bounds.south]]] },
   } : null;
   function enterZone(id: string) {
-    if (examples) { setActiveExampleId(id); setFilters(current => ({ ...current, zone:id })); }
+    if (examples) setActiveExampleId(id);
     else setFilters(current => ({ ...current, zone:id }));
   }
   function selectZone(id: string) {
@@ -112,7 +112,7 @@ export function RealAgencyMap({ agencySlug, agencyId, agencyName, properties, se
   function selectOffer(target: OfferTarget) {
     cancelPlacement();setSearchQuery('');
     if (target.source === 'real') { setActiveExampleId(null); setSelectedId(target.id); }
-    else if (target.zoneId) { setFilters({zone:target.zoneId});setFocusedZoneId(target.zoneId);setZoneRevision(current=>current+1);setRequestedExampleId(target.id);setOfferRevision(current=>current+1);setActiveExampleId(target.zoneId); }
+    else if (target.zoneId) { setFilters({});setFocusedZoneId(target.zoneId);setZoneRevision(current=>current+1);setRequestedExampleId(target.id);setOfferRevision(current=>current+1);setActiveExampleId(target.zoneId); }
   }
   const hasSearch=!!normalizePropertySearch(searchQuery)||Object.values(filters).some(value=>value?.trim());
   const offerPopup = hasSearch?null:<PropertyOffersPopup offers={preferences.offers??[]} targets={offerTargets} onSelect={selectOffer}/>;
@@ -160,12 +160,12 @@ export function RealAgencyMap({ agencySlug, agencyId, agencyName, properties, se
       {!fullscreen && records.some(record => record.latitude === null || record.longitude === null) && <p>Hay propiedades sin ubicación. Puede completarlas en <a href={`/inmobiliaria/${encodeURIComponent(agencySlug)}/panel/propiedades`}>Propiedades</a>.</p>}
       {!fullscreen && preferences.showLegend && <div className={styles.toolbar} aria-label="Leyenda del mapa">{Object.entries(effectivePreferences.kindColors).filter(([kind]) => records.some(record => names[record.type] === kind)).map(([kind,color]) => <span key={kind}><i aria-hidden="true" className={styles.legendSwatch} style={{backgroundColor:color}}/>{kind}</span>)}</div>}
     </>}
-    {!selected&&!position&&resultCards&&<div className={styles.resultsPosition} data-map-search-results>{resultCards}</div>}
+    {!selected&&!position&&!activeExampleZone&&resultCards&&<div className={styles.resultsPosition} data-map-search-results>{resultCards}</div>}
     {activeExampleZone && examples && <WorkspaceAerialExperience key={`${activeExampleZone.id}-${offerRevision}`} initialPropertyId={requestedExampleId} canEdit={canCustomize} onSaveExampleDetails={canCustomize ? saveExampleDetails : undefined} zone={activeExampleZone} clean
       settings={settings} pointsOfInterest={mapPoints} initialConfig={examples} persistDemoConfig={persistDemoConfig} onConfigSaved={setExamples}
       filters={filters} onFiltersChange={setFilters} filterZones={zones}
       searchControls={<MapSearchControls>{filterControls}</MapSearchControls>} searchResults={resultCards} matchedExampleIds={searchResults.filter(item=>item.source==='example').map(item=>item.id)}
-      onZoneSelect={id => { if (!zones.some(item => item.id === id)) return; cancelPlacement(); setFilters(current => ({ ...current, zone:id })); setFocusedZoneId(id); setZoneRevision(current => current + 1); setRequestedExampleId(undefined); setActiveExampleId(id); }}
+      onZoneSelect={id => { if (!zones.some(item => item.id === id)) return; cancelPlacement(); setFocusedZoneId(id); setZoneRevision(current => current + 1); setRequestedExampleId(undefined); setActiveExampleId(id); }}
       canvasActions={{ managementControls:aerialControls, managementPanel:propertyForm ?? undefined, floatingContent:offerPopup,
         onMapPick:canManageCatalogue && placing ? pickOnAerial : undefined,
         catalogueProperties:visible.filter(record => zoneFor(record) === activeExampleZone.id && record.latitude !== null && record.longitude !== null).map(record => ({ id:record.id, title:record.title, latitude:record.latitude!, longitude:record.longitude!, price:record.price, currency:record.currency, color:effectivePreferences.kindColors[names[record.type]], showPrice:preferences.showPrices || !!preferences.listings[record.id]?.offer })),
